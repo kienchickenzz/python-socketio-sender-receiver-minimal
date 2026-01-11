@@ -54,7 +54,6 @@ class MainEventRegistry(BaseEventRegistry):
         """
         Tạo wrapper function để execute handler với ReceiverManager injected.
 
-        Override để inject ReceiverManager vào data trước khi gọi handler.
         Chỉ inject manager cho các handler cần thiết (DISCONNECT, RECEIVER_READY).
 
         Args:
@@ -73,22 +72,46 @@ class MainEventRegistry(BaseEventRegistry):
         # Check xem handler này có cần manager không
         needs_manager = handler.event in events_need_manager
 
-        async def wrapper(sid: str, data: dict = {}):
+
+        # Wrapper function PHẢI nhận đúng signature: async def wrapper(sid: str, data=None)
+        # Lý do:
+        # - SocketIO luôn truyền 2 parameters khi trigger event: (sid, data)
+        # - sid (str): Socket ID của connection
+        # - data: Event data có thể là dict, string, hoặc None tùy event:
+        #   + CONNECT event: data là dict hoặc None
+        #   + DISCONNECT event: data là string (disconnect reason như "client namespace disconnect")
+        #   + Custom events (receiver_ready): data là dict từ client emit
+        # - KHÔNG dùng mutable default argument (data: dict = {}) vì đây là anti-pattern trong Python
+        async def wrapper(sid: str, data=None):
             """
             Wrapper function nhận event từ SocketIO và inject ReceiverManager nếu cần.
 
             Args:
-                sid: Socket ID
-                data: Event data (optional)
+                sid: Socket ID của connection (được SocketIO truyền vào)
+                data: Event data (optional, có thể là dict, string, hoặc None)
             """
             try:
                 # Chỉ inject ReceiverManager cho handlers cần thiết
                 if needs_manager:
+                    # PHẢI kiểm tra type của data trước khi thực hiện dict assignment
+                    # Lý do:
+                    # - data có thể KHÔNG phải là dict
+                    # - Ví dụ: với DISCONNECT event, data là string (disconnect reason)
+                    # - Nếu không check type mà cố gắng: data["key"] = value
+                    #   sẽ bị lỗi: TypeError: 'str' object does not support item assignment
+
+                    if data is None:
+                        # Data là None -> tạo dict mới
+                        data = {}
+                    elif not isinstance(data, dict):
+                        # Data không phải dict (ví dụ: string từ disconnect)
+                        # Wrap nó vào dict để giữ lại data gốc
+                        data = {"_original_data": data}
 
                     # Inject manager với key đặc biệt
                     data["__receiver_manager__"] = self._receiver_manager
 
-                # Execute handler
+                # Execute handler với đầy đủ parameters: (sio, sid, data)
                 await handler.handle(self._sio, sid, data)
 
             except Exception as e:

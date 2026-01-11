@@ -40,13 +40,13 @@ class IEventHandler(ABC):
     session_id: str = ""
 
     @abstractmethod
-    async def handle(self, sio: AsyncServer, data: dict = {}):
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data: dict = {}):
         """
         Handle Socket event.
 
         Args:
             sio: SocketIO AsyncServer instance
-            sid: Socket ID
+            client_sid: Client Socket ID
             data: Optional event data from client
 
         Returns:

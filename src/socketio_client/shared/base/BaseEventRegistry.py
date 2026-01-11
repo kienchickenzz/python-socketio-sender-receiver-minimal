@@ -207,12 +207,6 @@ class BaseEventRegistry(ABC):
 
             except Exception as e:
                 print(f"Error in handler {handler.__class__.__name__}: {e}")
-                # Emit error event to server (optional)
-                await self._sio.emit(
-                    "client_error",
-                    {"message": str(e), "event": handler.event.value},
-                    namespace=handler.namespace.value,
-                )
                 raise
 
         return wrapper

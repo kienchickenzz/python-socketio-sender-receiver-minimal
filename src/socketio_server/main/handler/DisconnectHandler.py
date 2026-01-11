@@ -21,31 +21,31 @@ class DisconnectHandler(IEventHandler):
     event = MainEvents.DISCONNECT
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, sid: str, data=None):
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
         """
         Xử lý khi client disconnect khỏi server.
 
         Args:
             sio: SocketIO AsyncServer instance
-            sid: Socket ID của client (cũng là receiver_id)
+            client_sid: Socket ID của client (cũng là receiver_id)
             data: Dict chứa:
                 - __receiver_manager__: ReceiverManager instance (injected by registry)
 
         Returns:
             None (fire-and-forget)
         """
-        print(f"[Server] Client {sid} disconnected from {self.namespace.value}")
+        print(f"[Server] Client {client_sid} disconnected from {self.namespace.value}")
 
         # Lấy ReceiverManager từ data (injected by registry)
         if data and isinstance(data, dict):
             receiver_manager: ReceiverManager | None = data.get("__receiver_manager__", None)
             if receiver_manager:
-                # Xóa receiver khỏi pool (receiver_id = sid)
-                removed = receiver_manager.remove_receiver(sid)
+                # Xóa receiver khỏi pool (receiver_id = client_sid)
+                removed = receiver_manager.remove_receiver(client_sid)
                 if removed:
-                    print(f"[DisconnectHandler] Cleaned up receiver {sid}")
+                    print(f"[DisconnectHandler] Cleaned up receiver {client_sid}")
                 else:
-                    print(f"[DisconnectHandler] Receiver {sid} not found in pool")
+                    print(f"[DisconnectHandler] Receiver {client_sid} not found in pool")
             else:
                 print(f"[DisconnectHandler] ReceiverManager not found in data")
 

@@ -13,7 +13,6 @@ from socketio import AsyncServer
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.shared.enum.BaseEvent import SocketEvent
 from src.socketio_server.shared.enum.BaseNamespace import Namespace
-from src.socketio_server.main.enum.MainEvent import MainEvents
 
 
 class BaseEventRegistry(ABC):
@@ -171,12 +170,10 @@ class BaseEventRegistry(ABC):
 
         print(f"Registered with SocketIO: {handler.namespace.value}:{handler.event.value}")
 
+    @abstractmethod
     def _create_wrapper(self, handler: IEventHandler):
         """
-        Tạo wrapper function để execute handler với ReceiverManager injected.
-
-        Override để inject ReceiverManager vào data trước khi gọi handler.
-        Chỉ inject manager cho các handler cần thiết (DISCONNECT, RECEIVER_READY).
+        Tạo wrapper function để execute handler.
 
         Args:
             handler: Handler instance
@@ -185,36 +182,4 @@ class BaseEventRegistry(ABC):
             Async wrapper function
         """
 
-        # Xác định các events cần inject ReceiverManager
-        events_need_manager = {
-            MainEvents.DISCONNECT,
-            MainEvents.RECEIVER_READY,
-        }
-
-        # Check xem handler này có cần manager không
-        needs_manager = handler.event in events_need_manager
-
-        async def wrapper(sid: str, data: dict = {}):
-            """
-            Wrapper function nhận event từ SocketIO và inject ReceiverManager nếu cần.
-
-            Args:
-                sid: Socket ID
-                data: Event data (optional)
-            """
-            try:
-                # Chỉ inject ReceiverManager cho handlers cần thiết
-                if needs_manager:
-
-                    # Inject manager với key đặc biệt
-                    data["__receiver_manager__"] = self._receiver_manager
-
-                # Execute handler
-                await handler.handle(self._sio, sid, data)
-
-            except Exception as e:
-                print(f"Error in handler {handler.__class__.__name__}: {e}")
-                raise
-
-        return wrapper
-    
+        pass

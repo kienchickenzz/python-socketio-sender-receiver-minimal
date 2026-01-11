@@ -22,13 +22,13 @@ class ReceiverReadyHandler(IEventHandler):
     event = MainEvents.RECEIVER_READY
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, sid: str, data=None):
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
         """
         Xử lý khi receiver emit receiver_ready event.
 
         Args:
             sio: SocketIO AsyncServer instance
-            sid: Socket ID của receiver
+            client_sid: Socket ID của receiver
             data: Dict chứa:
                 - session_id: ID của receiver
                 - __receiver_manager__: ReceiverManager instance (injected by registry)
@@ -37,11 +37,11 @@ class ReceiverReadyHandler(IEventHandler):
             None (fire-and-forget)
         """
         if not data:
-            print(f"[ReceiverReadyHandler] No data received from {sid}")
+            print(f"[ReceiverReadyHandler] No data received from {client_sid}")
             return
 
         # Lấy ReceiverManager từ data (injected by registry)
-        receiver_manager: ReceiverManager = data.get("__receiver_manager__")
+        receiver_manager: ReceiverManager | None = data.get("__receiver_manager__")
         if not receiver_manager:
             print(f"[ReceiverReadyHandler] ReceiverManager not found in data")
             return
@@ -49,14 +49,14 @@ class ReceiverReadyHandler(IEventHandler):
         # Lấy session_id từ data
         session_id = data.get("session_id")
         if not session_id:
-            print(f"[ReceiverReadyHandler] session_id not found in data from {sid}")
+            print(f"[ReceiverReadyHandler] session_id not found in data from {client_sid}")
             return
 
-        # Thêm receiver vào pool với status ACTIVE
-        receiver_manager.add_receiver(session_id, ReceiverStatus.ACTIVE)
+        # Thêm receiver vào pool với status IDLE
+        receiver_manager.add_receiver(session_id, ReceiverStatus.IDLE)
 
         print(
-            f"[ReceiverReadyHandler] Receiver {session_id} (sid: {sid}) is now ACTIVE"
+            f"[ReceiverReadyHandler] Receiver {session_id} (client_sid: {client_sid}) is now IDLE"
         )
         print(
             f"[ReceiverReadyHandler] Total active receivers: {receiver_manager.count_by_status(ReceiverStatus.ACTIVE)}"
