@@ -15,3 +15,7 @@ class MainEvents(BaseEvents):
     """
 
     RECEIVER_READY = SocketEvent("receiver_ready")
+    SENDER_PAIR_REQUEST = SocketEvent("sender-pair-request")
+
+    PAIR_REQUEST_SUCCESS = SocketEvent("pair-request-success")
+    PAIR_REQUEST_FAILED = SocketEvent("pair-request-failed")

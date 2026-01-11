@@ -9,13 +9,14 @@ from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
 from src.socketio_server.main.manager.ReceiverManager import ReceiverManager
+from src.socketio_server.main.manager.SenderManager import SenderManager
 
 
 class DisconnectHandler(IEventHandler):
     """
     Handler xử lý disconnect event từ client.
 
-    Stateless handler - không lưu trữ state, lấy ReceiverManager từ data.
+    Stateless handler - không lưu trữ state, lấy managers từ data.
     """
 
     event = MainEvents.DISCONNECT
@@ -27,27 +28,34 @@ class DisconnectHandler(IEventHandler):
 
         Args:
             sio: SocketIO AsyncServer instance
-            client_sid: Socket ID của client (cũng là receiver_id)
+            client_sid: Socket ID của client
             data: Dict chứa:
                 - __receiver_manager__: ReceiverManager instance (injected by registry)
+                - __sender_manager__: SenderManager instance (injected by registry)
 
         Returns:
             None (fire-and-forget)
         """
         print(f"[Server] Client {client_sid} disconnected from {self.namespace.value}")
 
-        # Lấy ReceiverManager từ data (injected by registry)
         if data and isinstance(data, dict):
-            receiver_manager: ReceiverManager | None = data.get("__receiver_manager__", None)
+            # Cleanup receiver nếu có
+            receiver_manager: ReceiverManager | None = data.get("__receiver_manager__")
             if receiver_manager:
-                # Xóa receiver khỏi pool (receiver_id = client_sid)
                 removed = receiver_manager.remove_receiver(client_sid)
                 if removed:
                     print(f"[DisconnectHandler] Cleaned up receiver {client_sid}")
-                else:
-                    print(f"[DisconnectHandler] Receiver {client_sid} not found in pool")
-            else:
-                print(f"[DisconnectHandler] ReceiverManager not found in data")
+
+            # Cleanup sender nếu có
+            sender_manager: SenderManager | None = data.get("__sender_manager__")
+            if sender_manager:
+                removed = sender_manager.remove_sender(client_sid)
+                if removed:
+                    print(f"[DisconnectHandler] Cleaned up sender {client_sid}")
+
+            # Nếu không tìm thấy trong cả 2 pool
+            if not receiver_manager and not sender_manager:
+                print(f"[DisconnectHandler] No managers found in data")
 
         # Additional cleanup nếu cần
         # - Notify other clients

@@ -11,7 +11,10 @@ from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.handler.ConnectHandler import ConnectHandler
 from src.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
 from src.socketio_server.main.handler.ReceiverReadyHandler import ReceiverReadyHandler
+from src.socketio_server.main.handler.SenderPairRequestHandler import SenderPairRequestHandler
 from src.socketio_server.main.manager.ReceiverManager import ReceiverManager
+from src.socketio_server.main.manager.SenderManager import SenderManager
+from src.socketio_server.main.manager.PairManager import PairManager
 from src.socketio_server.main.enum.MainEvent import MainEvents
 
 
@@ -20,12 +23,12 @@ class MainEventRegistry(BaseEventRegistry):
     Registry cho Main Server, quản lý các event handlers.
 
     Kế thừa từ BaseEventRegistry và implement abstract method _create_handlers().
-    Thêm ReceiverManager và inject vào data cho handlers.
+    Thêm ReceiverManager, SenderManager và PairManager, inject vào data cho handlers.
     """
 
     def __init__(self, sio: AsyncServer):
         """
-        Initialize MainEventRegistry với ReceiverManager.
+        Initialize MainEventRegistry với ReceiverManager, SenderManager và PairManager.
 
         Args:
             sio: SocketIO AsyncServer instance
@@ -33,6 +36,14 @@ class MainEventRegistry(BaseEventRegistry):
         # Khởi tạo ReceiverManager (singleton)
         self._receiver_manager = ReceiverManager()
         print("[MainEventRegistry] ReceiverManager initialized")
+
+        # Khởi tạo SenderManager (singleton)
+        self._sender_manager = SenderManager()
+        print("[MainEventRegistry] SenderManager initialized")
+
+        # Khởi tạo PairManager (singleton)
+        self._pair_manager = PairManager()
+        print("[MainEventRegistry] PairManager initialized")
 
         # Gọi parent __init__ để đăng ký handlers
         super().__init__(sio)
@@ -48,13 +59,14 @@ class MainEventRegistry(BaseEventRegistry):
             ConnectHandler(),
             DisconnectHandler(),
             ReceiverReadyHandler(),
+            SenderPairRequestHandler(),
         ]
 
     def _create_wrapper(self, handler: IEventHandler):
         """
-        Tạo wrapper function để execute handler với ReceiverManager injected.
+        Tạo wrapper function để execute handler với managers injected.
 
-        Chỉ inject manager cho các handler cần thiết (DISCONNECT, RECEIVER_READY).
+        Chỉ inject managers cho các handler cần thiết (DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST).
 
         Args:
             handler: Handler instance
@@ -63,13 +75,14 @@ class MainEventRegistry(BaseEventRegistry):
             Async wrapper function
         """
 
-        # Xác định các events cần inject ReceiverManager
+        # Xác định các events cần inject managers
         events_need_manager = {
             MainEvents.DISCONNECT,
             MainEvents.RECEIVER_READY,
+            MainEvents.SENDER_PAIR_REQUEST,
         }
 
-        # Check xem handler này có cần manager không
+        # Check xem handler này có cần managers không
         needs_manager = handler.event in events_need_manager
 
 
@@ -91,7 +104,7 @@ class MainEventRegistry(BaseEventRegistry):
                 data: Event data (optional, có thể là dict, string, hoặc None)
             """
             try:
-                # Chỉ inject ReceiverManager cho handlers cần thiết
+                # Chỉ inject managers cho handlers cần thiết
                 if needs_manager:
                     # PHẢI kiểm tra type của data trước khi thực hiện dict assignment
                     # Lý do:
@@ -108,8 +121,10 @@ class MainEventRegistry(BaseEventRegistry):
                         # Wrap nó vào dict để giữ lại data gốc
                         data = {"_original_data": data}
 
-                    # Inject manager với key đặc biệt
+                    # Inject managers với key đặc biệt
                     data["__receiver_manager__"] = self._receiver_manager
+                    data["__sender_manager__"] = self._sender_manager
+                    data["__pair_manager__"] = self._pair_manager
 
                 # Execute handler với đầy đủ parameters: (sio, sid, data)
                 await handler.handle(self._sio, sid, data)
