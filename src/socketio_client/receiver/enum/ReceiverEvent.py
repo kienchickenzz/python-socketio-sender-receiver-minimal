@@ -16,3 +16,4 @@ class ReceiverEvent(BaseEvents):
 
     RECEIVER_READY = SocketEvent("receiver_ready")
     PAIR_REQUEST_SUCCESS = SocketEvent("pair-request-success")
+    PROCESSING_RESULT = SocketEvent("processing-result")

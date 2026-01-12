@@ -31,7 +31,7 @@ class SenderPairRequestHandler(IEventHandler):
     event = MainEvents.SENDER_PAIR_REQUEST
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, sid: str, data=None):
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
         """
         Xử lý khi sender emit sender-pair-request event.
 
@@ -48,7 +48,7 @@ class SenderPairRequestHandler(IEventHandler):
             None (fire-and-forget)
         """
         if not data:
-            print(f"[SenderPairRequestHandler] No data received from {sid}")
+            print(f"[SenderPairRequestHandler] No data received from {client_sid}")
             return
 
         # Lấy managers từ data (injected by registry)
@@ -63,13 +63,13 @@ class SenderPairRequestHandler(IEventHandler):
         # Lấy session_id từ data
         session_id = data.get("session_id")
         if not session_id:
-            print(f"[SenderPairRequestHandler] session_id not found in data from {sid}")
+            print(f"[SenderPairRequestHandler] session_id not found in data from {client_sid}")
             return
 
         # Thêm sender vào pool với status ACTIVE
         sender_manager.add_sender(session_id, SenderStatus.ACTIVE)
         print(
-            f"[SenderPairRequestHandler] Sender {session_id} (sid: {sid}) is now ACTIVE"
+            f"[SenderPairRequestHandler] Sender {session_id} (client_sid: {client_sid}) is now ACTIVE"
         )
 
         # Tìm receiver IDLE (chưa được pair)
@@ -102,7 +102,7 @@ class SenderPairRequestHandler(IEventHandler):
                     "sender_id": session_id,
                     "receiver_id": available_receiver_id,
                 },
-                room=sid,
+                room=client_sid,
                 namespace=self.namespace.value,
             )
 
@@ -134,7 +134,7 @@ class SenderPairRequestHandler(IEventHandler):
                     "sender_id": session_id,
                     "reason": "No available receiver",
                 },
-                room=sid,
+                room=client_sid,
                 namespace=self.namespace.value,
             )
 

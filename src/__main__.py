@@ -15,8 +15,9 @@ if __name__ == "__main__":
 
     # Run Mode
     group.add_argument("--server", action="store_true", help="Run SocketIO server")
-    group.add_argument("--receiver", action="store_true", help="Run SocketIO receiver client")
     group.add_argument("--sender", action="store_true", help="Run SocketIO sender client")
+    group.add_argument("--receiver", action="store_true", help="Run SocketIO receiver client")
+    group.add_argument("--worker", action="store_true", help="Run SocketIO worker client")
 
     options = parser.parse_args()
 
@@ -34,3 +35,7 @@ if __name__ == "__main__":
     elif options.sender:
         from src.run_sender import run_client as run_sender
         asyncio.run(run_sender())
+
+    elif options.worker:
+        from src.run_worker import run_client as run_worker
+        asyncio.run(run_worker())

@@ -5,14 +5,14 @@ import asyncio
 
 from socketio import AsyncClient
 
-from src.socketio_client.receiver.registry import ReceiverEventRegistry
+from src.socketio_client.worker.registry import WorkerEventRegistry
 
 
 async def run_client():
     """Run SocketIO Client"""
     # Create SocketIO client
     sio = AsyncClient(logger=False, engineio_logger=False)
-    ReceiverEventRegistry(sio)
+    WorkerEventRegistry(sio)
 
     try:
         await sio.connect('http://localhost:5000', namespaces=['/'])

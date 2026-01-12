@@ -14,6 +14,9 @@ from src.socketio_client.receiver.handler.DisconnectHandler import DisconnectHan
 from src.socketio_client.receiver.handler.PairRequestSuccessHandler import (
     PairRequestSuccessHandler,
 )
+from src.socketio_client.receiver.handler.ProcessingResultHandler import (
+    ProcessingResultHandler,
+)
 
 
 class ReceiverEventRegistry(BaseEventRegistry):
@@ -35,4 +38,5 @@ class ReceiverEventRegistry(BaseEventRegistry):
             ConnectionConfirmedHandler(),
             DisconnectHandler(),
             PairRequestSuccessHandler(),
+            ProcessingResultHandler(),
         ]

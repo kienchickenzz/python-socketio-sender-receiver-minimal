@@ -12,9 +12,14 @@ from src.socketio_server.main.handler.ConnectHandler import ConnectHandler
 from src.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
 from src.socketio_server.main.handler.ReceiverReadyHandler import ReceiverReadyHandler
 from src.socketio_server.main.handler.SenderPairRequestHandler import SenderPairRequestHandler
+from src.socketio_server.main.handler.RequestProcessingHandler import RequestProcessingHandler
+from src.socketio_server.main.handler.ProcessingAcknowledgedHandler import ProcessingAcknowledgedHandler
+from src.socketio_server.main.handler.WorkerActiveHandler import WorkerActiveHandler
+from src.socketio_server.main.handler.WorkerResultHandler import WorkerResultHandler
 from src.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio_server.main.manager.SenderManager import SenderManager
 from src.socketio_server.main.manager.PairManager import PairManager
+from src.socketio_server.main.manager.WorkerManager import WorkerManager
 from src.socketio_server.main.enum.MainEvent import MainEvents
 
 
@@ -28,7 +33,7 @@ class MainEventRegistry(BaseEventRegistry):
 
     def __init__(self, sio: AsyncServer):
         """
-        Initialize MainEventRegistry với ReceiverManager, SenderManager và PairManager.
+        Initialize MainEventRegistry với ReceiverManager, SenderManager, PairManager và WorkerManager.
 
         Args:
             sio: SocketIO AsyncServer instance
@@ -45,6 +50,10 @@ class MainEventRegistry(BaseEventRegistry):
         self._pair_manager = PairManager()
         print("[MainEventRegistry] PairManager initialized")
 
+        # Khởi tạo WorkerManager (singleton)
+        self._worker_manager = WorkerManager()
+        print("[MainEventRegistry] WorkerManager initialized")
+
         # Gọi parent __init__ để đăng ký handlers
         super().__init__(sio)
 
@@ -60,13 +69,17 @@ class MainEventRegistry(BaseEventRegistry):
             DisconnectHandler(),
             ReceiverReadyHandler(),
             SenderPairRequestHandler(),
+            RequestProcessingHandler(),
+            ProcessingAcknowledgedHandler(),
+            WorkerActiveHandler(),
+            WorkerResultHandler(),
         ]
 
     def _create_wrapper(self, handler: IEventHandler):
         """
         Tạo wrapper function để execute handler với managers injected.
 
-        Chỉ inject managers cho các handler cần thiết (DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST).
+        Chỉ inject managers cho các handler cần thiết (DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST, WORKER_ACTIVE, REQUEST_PROCESSING, WORKER_RESULT).
 
         Args:
             handler: Handler instance
@@ -80,6 +93,9 @@ class MainEventRegistry(BaseEventRegistry):
             MainEvents.DISCONNECT,
             MainEvents.RECEIVER_READY,
             MainEvents.SENDER_PAIR_REQUEST,
+            MainEvents.WORKER_ACTIVE,
+            MainEvents.REQUEST_PROCESSING,
+            MainEvents.WORKER_RESULT,
         }
 
         # Check xem handler này có cần managers không
@@ -125,6 +141,7 @@ class MainEventRegistry(BaseEventRegistry):
                     data["__receiver_manager__"] = self._receiver_manager
                     data["__sender_manager__"] = self._sender_manager
                     data["__pair_manager__"] = self._pair_manager
+                    data["__worker_manager__"] = self._worker_manager
 
                 # Execute handler với đầy đủ parameters: (sio, sid, data)
                 await handler.handle(self._sio, sid, data)

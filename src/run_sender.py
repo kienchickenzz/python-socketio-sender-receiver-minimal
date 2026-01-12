@@ -2,6 +2,7 @@
 Main client entry point - DDD Architecture Demo
 """
 import asyncio
+
 from socketio import AsyncClient
 
 from src.socketio_client.sender.registry import SenderEventRegistry
@@ -21,6 +22,8 @@ async def run_client():
         # Keep client running
         await sio.wait()
 
+    except asyncio.CancelledError:
+        print("👋 Client stopped by user")
     except Exception as e:
         print(f"❌ Error: {e}")
         print("Make sure the server is running!")
