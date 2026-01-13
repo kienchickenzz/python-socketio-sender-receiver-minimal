@@ -8,6 +8,7 @@ from socketio import AsyncServer
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
+from src.shared.dto.connection import ConnectionConfirmedDto
 
 
 class ConnectHandler(IEventHandler):
@@ -30,10 +31,9 @@ class ConnectHandler(IEventHandler):
         """
         print(f"[Server] Client {client_sid} connected to {self.namespace.value}")
 
-        # Gửi CONNECTION_CONFIRMED với session ID cho client
-        payload = {
-            "client_sid": client_sid,
-        }
+        # Tạo DTO và serialize để emit
+        dto = ConnectionConfirmedDto(client_sid=client_sid)
+        payload = dto.model_dump(by_alias=True)
 
         await sio.emit(
             MainEvents.CONNECTION_CONFIRMED.value,
@@ -41,4 +41,4 @@ class ConnectHandler(IEventHandler):
             room=client_sid,
             namespace=self.namespace.value
         )
-        print(f"[Server] Sent CONNECTION_CONFIRMED to {client_sid}")
+        print(f"[Server] Sent CONNECTION_CONFIRMED to {client_sid} with payload: {payload}")

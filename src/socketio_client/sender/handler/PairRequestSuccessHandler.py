@@ -8,10 +8,12 @@ import random
 import asyncio
 
 from socketio import AsyncClient
+from pydantic import ValidationError
 
 from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.sender.enum.SenderEvent import SenderEvent
 from src.socketio_client.sender.enum.SenderNamespace import SenderNamespace
+from src.shared.dto.pairing import PairRequestSuccessDto
 
 
 class PairRequestSuccessHandler(IEventHandler):
@@ -89,21 +91,24 @@ class PairRequestSuccessHandler(IEventHandler):
             print(f"[Sender] pair-request-success received but no data")
             return None
 
-        pair_id = data.get("pair_id")
-        sender_id = data.get("sender_id")
-        receiver_id = data.get("receiver_id")
+        # Deserialize data thành DTO
+        try:
+            dto = PairRequestSuccessDto(**data)
+        except ValidationError as e:
+            print(f"[Sender] Invalid pair-request-success data: {e}")
+            return None
 
         print(f"\n{'='*60}")
         print(f"[Sender] 🎉 PAIRING SUCCESS!")
-        print(f"[Sender] Pair ID: {pair_id}")
-        print(f"[Sender] Sender ID: {sender_id}")
-        print(f"[Sender] Receiver ID: {receiver_id}")
+        print(f"[Sender] Pair ID: {dto.pair_id}")
+        print(f"[Sender] Sender ID: {dto.sender_id}")
+        print(f"[Sender] Receiver ID: {dto.receiver_id}")
         print(f"[Sender] Starting continuous data transmission (every 5 seconds)...")
         print(f"{'='*60}\n")
 
         # Khởi chạy background task để gửi data liên tục mỗi 5 giây
         asyncio.create_task(
-            self._send_data_periodically(sio, pair_id, sender_id, receiver_id)
+            self._send_data_periodically(sio, dto.pair_id, dto.sender_id, dto.receiver_id)
         )
 
         return None

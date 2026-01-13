@@ -6,10 +6,12 @@ Handler này nhận session ID từ server và trả về để registry cập n
 import asyncio
 from socketio import AsyncClient
 from socketio.exceptions import BadNamespaceError
+from pydantic import ValidationError
 
 from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.receiver.enum.ReceiverEvent import ReceiverEvent
 from src.socketio_client.receiver.enum.ReceiverNamespace import ReceiverNamespace
+from src.shared.dto.connection import ConnectionConfirmedDto, ReceiverReadyDto
 
 
 class ConnectionConfirmedHandler(IEventHandler):
@@ -30,11 +32,16 @@ class ConnectionConfirmedHandler(IEventHandler):
         Returns:
             str: Session ID mới từ server để registry cập nhật
         """
-        # Lấy session ID từ data
-        new_session_id = data.get("client_sid") if data else None
+        # Deserialize data thành DTO
+        try:
+            dto = ConnectionConfirmedDto(**data) if data else None
+        except ValidationError as e:
+            print(f"[Receiver] Invalid CONNECTION_CONFIRMED data: {e}")
+            await sio.disconnect()
+            return None
 
-        if new_session_id:
-            print(f"[Receiver] Connection confirmed with session ID: {new_session_id}")
+        if dto:
+            print(f"[Receiver] Connection confirmed with session ID: {dto.client_sid}")
             # Trả về session_id mới để wrapper cập nhật vào registry
 
             # Vì sao cần retry:
@@ -46,15 +53,19 @@ class ConnectionConfirmedHandler(IEventHandler):
             max_retries = 3
             retry_delay = 0.05  # 50ms delay giữa các lần retry
 
+            # Tạo DTO và serialize để emit
+            ready_dto = ReceiverReadyDto(session_id=dto.client_sid)
+            payload = ready_dto.model_dump(by_alias=True)
+
             for attempt in range(max_retries):
                 try:
                     await sio.emit(
                         ReceiverEvent.RECEIVER_READY.value,
-                        {"session_id": new_session_id},
+                        payload,
                         namespace=ReceiverNamespace.ROOT.value,
                     )
                     print(
-                        f"[Receiver] Emitted receiver_ready event with session_id: {new_session_id}"
+                        f"[Receiver] Emitted receiver_ready event with session_id: {dto.client_sid}"
                     )
                     # Emit thành công, thoát loop
                     break
@@ -75,7 +86,7 @@ class ConnectionConfirmedHandler(IEventHandler):
                         # Không raise exception để không block việc lưu session_id
                         # Session_id vẫn được trả về và lưu vào registry
 
-            return new_session_id
+            return dto.client_sid
         else:
             print(
                 f"[Receiver] CONNECTION_CONFIRMED received but no session ID in data"

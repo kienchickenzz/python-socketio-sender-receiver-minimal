@@ -4,6 +4,7 @@ SenderPairRequestHandler - Xử lý khi sender yêu cầu pair với receiver
 Handler xử lý sự kiện sender-pair-request từ sender client.
 """
 from socketio import AsyncServer
+from pydantic import ValidationError
 
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
@@ -13,6 +14,8 @@ from src.socketio_server.main.enum.ReceiverStatus import ReceiverStatus
 from src.socketio_server.main.manager.SenderManager import SenderManager
 from src.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio_server.main.manager.PairManager import PairManager
+from src.shared.dto.connection import SenderPairRequestDto
+from src.shared.dto.pairing import PairRequestSuccessDto, PairRequestFailedDto
 
 
 class SenderPairRequestHandler(IEventHandler):
@@ -39,7 +42,7 @@ class SenderPairRequestHandler(IEventHandler):
             sio: SocketIO AsyncServer instance
             sid: Socket ID của sender
             data: Dict chứa:
-                - session_id: ID của sender
+                - dto.session_id: ID của sender
                 - __sender_manager__: SenderManager instance (injected by registry)
                 - __receiver_manager__: ReceiverManager instance (injected by registry)
                 - __pair_manager__: PairManager instance (injected by registry)
@@ -60,16 +63,17 @@ class SenderPairRequestHandler(IEventHandler):
             print(f"[SenderPairRequestHandler] Required managers not found in data")
             return
 
-        # Lấy session_id từ data
-        session_id = data.get("session_id")
-        if not session_id:
-            print(f"[SenderPairRequestHandler] session_id not found in data from {client_sid}")
+        # Deserialize data thành DTO
+        try:
+            dto = SenderPairRequestDto(**data)
+        except ValidationError as e:
+            print(f"[SenderPairRequestHandler] Invalid data format from {client_sid}: {e}")
             return
 
         # Thêm sender vào pool với status ACTIVE
-        sender_manager.add_sender(session_id, SenderStatus.ACTIVE)
+        sender_manager.add_sender(dto.session_id, SenderStatus.ACTIVE)
         print(
-            f"[SenderPairRequestHandler] Sender {session_id} (client_sid: {client_sid}) is now ACTIVE"
+            f"[SenderPairRequestHandler] Sender {dto.session_id} (client_sid: {client_sid}) is now ACTIVE"
         )
 
         # Tìm receiver IDLE (chưa được pair)
@@ -84,38 +88,38 @@ class SenderPairRequestHandler(IEventHandler):
 
         if available_receiver_id:
             # Có receiver available → tạo pair
-            pair_id = pair_manager.add_pair(session_id, available_receiver_id)
+            pair_id = pair_manager.add_pair(dto.session_id, available_receiver_id)
 
             # Update receiver status sang ACTIVE
             receiver_manager.update_status(available_receiver_id, ReceiverStatus.ACTIVE)
 
             print(
-                f"[SenderPairRequestHandler] Successfully paired sender {session_id} "
+                f"[SenderPairRequestHandler] Successfully paired sender {dto.session_id} "
                 f"with receiver {available_receiver_id} (pair_id: {pair_id})"
             )
+
+            # Tạo DTO và serialize
+            success_dto = PairRequestSuccessDto(
+                pair_id=str(pair_id),  # Convert UUID to string
+                sender_id=dto.session_id,
+                receiver_id=available_receiver_id,
+            )
+            payload = success_dto.model_dump(by_alias=True)
 
             # Emit success cho sender
             await sio.emit(
                 MainEvents.PAIR_REQUEST_SUCCESS.value,
-                {
-                    "pair_id": str(pair_id),  # Convert UUID to string
-                    "sender_id": session_id,
-                    "receiver_id": available_receiver_id,
-                },
+                payload,
                 room=client_sid,
                 namespace=self.namespace.value,
             )
 
-            print(f"[SenderPairRequestHandler] Emitted pair-request-success to sender {session_id}")
+            print(f"[SenderPairRequestHandler] Emitted pair-request-success to sender {dto.session_id}")
 
             # Emit success cho receiver
             await sio.emit(
                 MainEvents.PAIR_REQUEST_SUCCESS.value,
-                {
-                    "pair_id": str(pair_id),  # Convert UUID to string
-                    "sender_id": session_id,
-                    "receiver_id": available_receiver_id,
-                },
+                payload,
                 room=available_receiver_id,
                 namespace=self.namespace.value,
             )
@@ -124,18 +128,22 @@ class SenderPairRequestHandler(IEventHandler):
         else:
             # Không có receiver available → fail
             print(
-                f"[SenderPairRequestHandler] No available receiver for sender {session_id}"
+                f"[SenderPairRequestHandler] No available receiver for sender {dto.session_id}"
             )
+
+            # Tạo DTO và serialize
+            failed_dto = PairRequestFailedDto(
+                sender_id=dto.session_id,
+                reason="No available receiver",
+            )
+            payload = failed_dto.model_dump(by_alias=True)
 
             # Emit failed cho sender
             await sio.emit(
                 MainEvents.PAIR_REQUEST_FAILED.value,
-                {
-                    "sender_id": session_id,
-                    "reason": "No available receiver",
-                },
+                payload,
                 room=client_sid,
                 namespace=self.namespace.value,
             )
 
-            print(f"[SenderPairRequestHandler] Emitted pair-request-failed to sender {session_id}")
+            print(f"[SenderPairRequestHandler] Emitted pair-request-failed to sender {dto.session_id}")

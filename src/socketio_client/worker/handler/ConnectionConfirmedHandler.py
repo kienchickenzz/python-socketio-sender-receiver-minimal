@@ -6,10 +6,12 @@ Handler này nhận session ID từ server và trả về để registry cập n
 import asyncio
 from socketio import AsyncClient
 from socketio.exceptions import BadNamespaceError
+from pydantic import ValidationError
 
 from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.worker.enum.WorkerEvent import WorkerEvent
 from src.socketio_client.worker.enum.WorkerNamespace import WorkerNamespace
+from src.shared.dto.connection import ConnectionConfirmedDto, WorkerActiveDto
 
 
 class ConnectionConfirmedHandler(IEventHandler):
@@ -30,10 +32,20 @@ class ConnectionConfirmedHandler(IEventHandler):
         Returns:
             str: Session ID mới từ server để registry cập nhật
         """
-        new_session_id: str | None = data.get("client_sid") if data else None
+        # Deserialize data thành DTO
+        try:
+            dto = ConnectionConfirmedDto(**data) if data else None
+        except ValidationError as e:
+            print(f"[Worker] Invalid CONNECTION_CONFIRMED data: {e}")
+            await sio.disconnect()
+            return None
 
-        if new_session_id:
-            print(f"[Worker] Connection confirmed with session ID: {new_session_id}")
+        if dto:
+            print(f"[Worker] Connection confirmed with session ID: {dto.client_sid}")
+
+            # Tạo DTO và serialize để emit
+            active_dto = WorkerActiveDto(session_id=dto.client_sid)
+            payload = active_dto.model_dump(by_alias=True)
 
             # Emit worker_active với retry logic
             # Lý do cần retry: tương tự sender/receiver, namespace có thể chưa ready
@@ -44,11 +56,11 @@ class ConnectionConfirmedHandler(IEventHandler):
                 try:
                     await sio.emit(
                         WorkerEvent.WORKER_ACTIVE.value,
-                        {"session_id": new_session_id},
+                        payload,
                         namespace=WorkerNamespace.ROOT.value,
                     )
                     print(
-                        f"[Worker] Emitted worker_active event with session_id: {new_session_id}"
+                        f"[Worker] Emitted worker_active event with session_id: {dto.client_sid}"
                     )
                     print(f"[Worker] Worker is now ACTIVE and ready to receive processing tasks")
                     # Emit thành công, thoát loop
@@ -69,7 +81,7 @@ class ConnectionConfirmedHandler(IEventHandler):
                         )
                         # Không raise exception để không block việc lưu session_id
 
-            return new_session_id
+            return dto.client_sid
         else:
             print(f"[Worker] CONNECTION_CONFIRMED received but no session ID in data")
             await sio.disconnect()

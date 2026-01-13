@@ -4,12 +4,14 @@ ReceiverReadyHandler - Xử lý khi receiver sẵn sàng
 Handler xử lý sự kiện receiver_ready từ receiver client.
 """
 from socketio import AsyncServer
+from pydantic import ValidationError
 
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
 from src.socketio_server.main.enum.ReceiverStatus import ReceiverStatus
 from src.socketio_server.main.manager.ReceiverManager import ReceiverManager
+from src.shared.dto.connection import ReceiverReadyDto
 
 
 class ReceiverReadyHandler(IEventHandler):
@@ -46,17 +48,18 @@ class ReceiverReadyHandler(IEventHandler):
             print(f"[ReceiverReadyHandler] ReceiverManager not found in data")
             return
 
-        # Lấy session_id từ data
-        session_id = data.get("session_id")
-        if not session_id:
-            print(f"[ReceiverReadyHandler] session_id not found in data from {client_sid}")
+        # Deserialize data thành DTO
+        try:
+            dto = ReceiverReadyDto(**data)
+        except ValidationError as e:
+            print(f"[ReceiverReadyHandler] Invalid data format from {client_sid}: {e}")
             return
 
         # Thêm receiver vào pool với status IDLE
-        receiver_manager.add_receiver(session_id, ReceiverStatus.IDLE)
+        receiver_manager.add_receiver(dto.session_id, ReceiverStatus.IDLE)
 
         print(
-            f"[ReceiverReadyHandler] Receiver {session_id} (client_sid: {client_sid}) is now IDLE"
+            f"[ReceiverReadyHandler] Receiver {dto.session_id} (client_sid: {client_sid}) is now IDLE"
         )
         print(
             f"[ReceiverReadyHandler] Total active receivers: {receiver_manager.count_by_status(ReceiverStatus.ACTIVE)}"

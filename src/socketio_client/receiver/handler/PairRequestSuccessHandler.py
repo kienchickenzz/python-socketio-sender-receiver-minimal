@@ -4,10 +4,12 @@ PairRequestSuccessHandler - Xử lý khi được pair với sender
 Handler xử lý khi server thông báo receiver được pair với sender.
 """
 from socketio import AsyncClient
+from pydantic import ValidationError
 
 from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.receiver.enum.ReceiverEvent import ReceiverEvent
 from src.socketio_client.receiver.enum.ReceiverNamespace import ReceiverNamespace
+from src.shared.dto.pairing import PairRequestSuccessDto
 
 
 class PairRequestSuccessHandler(IEventHandler):
@@ -39,15 +41,18 @@ class PairRequestSuccessHandler(IEventHandler):
             print(f"[Receiver] pair-request-success received but no data")
             return None
 
-        pair_id = data.get("pair_id")
-        sender_id = data.get("sender_id")
-        receiver_id = data.get("receiver_id")
+        # Deserialize data thành DTO
+        try:
+            dto = PairRequestSuccessDto(**data)
+        except ValidationError as e:
+            print(f"[Receiver] Invalid pair-request-success data: {e}")
+            return None
 
         print(f"\n{'='*60}")
         print(f"[Receiver] 🎉 PAIRED WITH SENDER!")
-        print(f"[Receiver] Pair ID: {pair_id}")
-        print(f"[Receiver] Sender ID: {sender_id}")
-        print(f"[Receiver] Receiver ID: {receiver_id}")
+        print(f"[Receiver] Pair ID: {dto.pair_id}")
+        print(f"[Receiver] Sender ID: {dto.sender_id}")
+        print(f"[Receiver] Receiver ID: {dto.receiver_id}")
         print(f"[Receiver] Ready to receive data...")
         print(f"{'='*60}\n")
 

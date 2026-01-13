@@ -4,10 +4,12 @@ PairRequestFailedHandler - Xử lý khi pairing thất bại
 Handler xử lý khi server thông báo không thể pair với receiver.
 """
 from socketio import AsyncClient
+from pydantic import ValidationError
 
 from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.sender.enum.SenderEvent import SenderEvent
 from src.socketio_client.sender.enum.SenderNamespace import SenderNamespace
+from src.shared.dto.pairing import PairRequestFailedDto
 
 
 class PairRequestFailedHandler(IEventHandler):
@@ -40,13 +42,18 @@ class PairRequestFailedHandler(IEventHandler):
             await sio.disconnect()
             return None
 
-        sender_id = data.get("sender_id")
-        reason = data.get("reason", "Unknown reason")
+        # Deserialize data thành DTO
+        try:
+            dto = PairRequestFailedDto(**data)
+        except ValidationError as e:
+            print(f"[Sender] Invalid pair-request-failed data: {e}")
+            await sio.disconnect()
+            return None
 
         print(f"\n{'='*60}")
         print(f"[Sender] ❌ PAIRING FAILED!")
-        print(f"[Sender] Sender ID: {sender_id}")
-        print(f"[Sender] Reason: {reason}")
+        print(f"[Sender] Sender ID: {dto.sender_id}")
+        print(f"[Sender] Reason: {dto.reason}")
         print(f"[Sender] Disconnecting...")
         print(f"{'='*60}\n")
 

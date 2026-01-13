@@ -23,13 +23,13 @@ class WorkerResultHandler(IEventHandler):
     event = MainEvents.WORKER_RESULT
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, sid: str, data=None):
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
         """
         Xử lý khi worker emit worker-result event.
 
         Args:
             sio: SocketIO AsyncServer instance
-            sid: Socket ID của worker
+            client_sid: Socket ID của worker
             data: Dict chứa:
                 - pair_id: ID của cặp sender-receiver
                 - sender_id: ID của sender
@@ -43,7 +43,7 @@ class WorkerResultHandler(IEventHandler):
             None (fire-and-forget)
         """
         if not data:
-            print(f"[WorkerResultHandler] No data received from {sid}")
+            print(f"[WorkerResultHandler] No data received from {client_sid}")
             return
 
         pair_id = data.get("pair_id")
