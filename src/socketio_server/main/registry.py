@@ -28,7 +28,8 @@ class MainEventRegistry(BaseEventRegistry):
     Registry cho Main Server, quản lý các event handlers.
 
     Kế thừa từ BaseEventRegistry và implement abstract method _create_handlers().
-    Thêm ReceiverManager, SenderManager và PairManager, inject vào data cho handlers.
+    Quản lý ReceiverManager, SenderManager, PairManager, WorkerManager và inject
+    có điều kiện vào handlers dựa trên event type.
     """
 
     def __init__(self, sio: AsyncServer):
@@ -77,9 +78,13 @@ class MainEventRegistry(BaseEventRegistry):
 
     def _create_wrapper(self, handler: IEventHandler):
         """
-        Tạo wrapper function để execute handler với managers injected.
+        Tạo wrapper function để execute handler với managers injected có điều kiện.
 
-        Chỉ inject managers cho các handler cần thiết (DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST, WORKER_ACTIVE, REQUEST_PROCESSING, WORKER_RESULT).
+        Dependency injection có điều kiện:
+        - ReceiverManager: DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST
+        - SenderManager: DISCONNECT, SENDER_PAIR_REQUEST
+        - PairManager: SENDER_PAIR_REQUEST
+        - WorkerManager: REQUEST_PROCESSING, WORKER_ACTIVE, WORKER_RESULT
 
         Args:
             handler: Handler instance
@@ -113,7 +118,7 @@ class MainEventRegistry(BaseEventRegistry):
         # - KHÔNG dùng mutable default argument (data: dict = {}) vì đây là anti-pattern trong Python
         async def wrapper(sid: str, data=None):
             """
-            Wrapper function nhận event từ SocketIO và inject ReceiverManager nếu cần.
+            Wrapper function nhận event từ SocketIO và inject managers có điều kiện.
 
             Args:
                 sid: Socket ID của connection (được SocketIO truyền vào)
@@ -137,11 +142,35 @@ class MainEventRegistry(BaseEventRegistry):
                         # Wrap nó vào dict để giữ lại data gốc
                         data = {"_original_data": data}
 
-                    # Inject managers với key đặc biệt
-                    data["__receiver_manager__"] = self._receiver_manager
-                    data["__sender_manager__"] = self._sender_manager
-                    data["__pair_manager__"] = self._pair_manager
-                    data["__worker_manager__"] = self._worker_manager
+                    # Inject managers có điều kiện dựa trên event type
+                    # Chỉ inject manager nào cần thiết cho event cụ thể
+
+                    # ReceiverManager: cần cho DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST
+                    if handler.event in {
+                        MainEvents.DISCONNECT,
+                        MainEvents.RECEIVER_READY,
+                        MainEvents.SENDER_PAIR_REQUEST,
+                    }:
+                        data["__receiver_manager__"] = self._receiver_manager
+
+                    # SenderManager: cần cho DISCONNECT, SENDER_PAIR_REQUEST
+                    if handler.event in {
+                        MainEvents.DISCONNECT,
+                        MainEvents.SENDER_PAIR_REQUEST,
+                    }:
+                        data["__sender_manager__"] = self._sender_manager
+
+                    # PairManager: chỉ cần cho SENDER_PAIR_REQUEST
+                    if handler.event == MainEvents.SENDER_PAIR_REQUEST:
+                        data["__pair_manager__"] = self._pair_manager
+
+                    # WorkerManager: cần cho REQUEST_PROCESSING, WORKER_ACTIVE, WORKER_RESULT
+                    if handler.event in {
+                        MainEvents.REQUEST_PROCESSING,
+                        MainEvents.WORKER_ACTIVE,
+                        MainEvents.WORKER_RESULT,
+                    }:
+                        data["__worker_manager__"] = self._worker_manager
 
                 # Execute handler với đầy đủ parameters: (sio, sid, data)
                 await handler.handle(self._sio, sid, data)
