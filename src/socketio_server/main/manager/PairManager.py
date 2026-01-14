@@ -4,7 +4,7 @@ PairManager - Singleton manager quản lý active sender-receiver pairs
 Quản lý tập hợp các cặp sender-receiver đang active với auto-increment ID.
 """
 import uuid
-from typing import Dict, Optional
+from typing import Optional
 
 from src.socketio_server.main.model.PairData import PairData
 
@@ -27,7 +27,7 @@ class PairManager:
     """
 
     _instance = None
-    _pairs: Dict[uuid.UUID, PairData] = {}
+    _pairs: dict[uuid.UUID, PairData] = {}
 
     def __new__(cls):
         """

@@ -1,0 +1,24 @@
+Active Receivers
+{
+	id (receiver id): data - receiver status (ACTIVE/IDLE) 
+}
+
+Active Senders
+{
+	id (sender id): data - sender status (ACTIVE/IDLE)
+}
+
+Active Pairs
+{
+	id (auto generated): data - (receiver id, sender id)
+}
+
+Active Workers
+{
+	id (auto generated): data - (worker id)
+}
+
+Active Jobs
+{
+	id (auto generated): data - (worker id, sender id, pair id) [data có thể là các queue, mỗi queue ứng với 1 sender <-> thỏa mãn tính chất FIFO và khi sender ngắt kết nối, hủy các job trong hàng đợi dễ dàng bằng cách hủy cả queue]
+}

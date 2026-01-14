@@ -6,10 +6,12 @@ Handler nhận kết quả từ worker, gửi cho receiver, và cập nhật tr�
 from socketio import AsyncServer
 from pydantic import ValidationError
 
+from src.socketio_server.main.model.JobData import JobData
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
 from src.socketio_server.main.manager.WorkerManager import WorkerManager
+from src.socketio_server.main.manager.JobManager import JobManager
 from src.socketio_server.main.enum.WorkerStatus import WorkerStatus
 from src.shared.dto.processing import WorkerResultDto, ProcessingResultDto
 
@@ -40,6 +42,7 @@ class WorkerResultHandler(IEventHandler):
                 - original_data: Data gốc
                 - result: Kết quả đã xử lý (sorted data)
                 - __worker_manager__: WorkerManager injected từ registry
+                - __job_manager__: JobManager injected từ registry
 
         Returns:
             None (fire-and-forget)
@@ -49,6 +52,7 @@ class WorkerResultHandler(IEventHandler):
             return
 
         worker_manager: WorkerManager | None = data.get("__worker_manager__")
+        job_manager: JobManager | None = data.get("__job_manager__")
 
         # Deserialize data thành DTO
         try:
@@ -86,6 +90,29 @@ class WorkerResultHandler(IEventHandler):
         )
 
         print(f"[WorkerResultHandler] ✅ Emitted processing-result to receiver {dto.receiver_id}")
+
+        # Remove job khỏi JobManager
+        if job_manager:
+            # Tìm job tương ứng với worker_id và pair_id
+            jobs_by_worker: dict[str, JobData] = job_manager.get_jobs_by_worker(dto.worker_id)
+            matched_jobs = {
+                job_id: job_data
+                for job_id, job_data in jobs_by_worker.items()
+                if job_data.pair_id == dto.pair_id
+            }
+
+            if matched_jobs:
+                # Lấy job đầu tiên (FIFO) và remove
+                job_id = next(iter(matched_jobs))
+                job_manager.remove_job(job_id)
+                print(f"[WorkerResultHandler] 🗑️ Removed job {job_id} from tracking")
+                print(f"[WorkerResultHandler] Total active jobs: {job_manager.count()}")
+            else:
+                print(
+                    f"[WorkerResultHandler] ⚠️ No matching job found for worker {dto.worker_id} and pair {dto.pair_id}"
+                )
+        else:
+            print(f"[WorkerResultHandler] ⚠️ No JobManager to remove job")
 
         # Cập nhật trạng thái worker về ACTIVE
         if worker_manager and dto.worker_id:

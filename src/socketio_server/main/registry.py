@@ -13,13 +13,13 @@ from src.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
 from src.socketio_server.main.handler.ReceiverReadyHandler import ReceiverReadyHandler
 from src.socketio_server.main.handler.SenderPairRequestHandler import SenderPairRequestHandler
 from src.socketio_server.main.handler.RequestProcessingHandler import RequestProcessingHandler
-from src.socketio_server.main.handler.ProcessingAcknowledgedHandler import ProcessingAcknowledgedHandler
 from src.socketio_server.main.handler.WorkerActiveHandler import WorkerActiveHandler
 from src.socketio_server.main.handler.WorkerResultHandler import WorkerResultHandler
 from src.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio_server.main.manager.SenderManager import SenderManager
 from src.socketio_server.main.manager.PairManager import PairManager
 from src.socketio_server.main.manager.WorkerManager import WorkerManager
+from src.socketio_server.main.manager.JobManager import JobManager
 from src.socketio_server.main.enum.MainEvent import MainEvents
 
 
@@ -34,7 +34,7 @@ class MainEventRegistry(BaseEventRegistry):
 
     def __init__(self, sio: AsyncServer):
         """
-        Initialize MainEventRegistry với ReceiverManager, SenderManager, PairManager và WorkerManager.
+        Initialize MainEventRegistry với ReceiverManager, SenderManager, PairManager, WorkerManager và JobManager.
 
         Args:
             sio: SocketIO AsyncServer instance
@@ -55,6 +55,10 @@ class MainEventRegistry(BaseEventRegistry):
         self._worker_manager = WorkerManager()
         print("[MainEventRegistry] WorkerManager initialized")
 
+        # Khởi tạo JobManager (singleton)
+        self._job_manager = JobManager()
+        print("[MainEventRegistry] JobManager initialized")
+
         # Gọi parent __init__ để đăng ký handlers
         super().__init__(sio)
 
@@ -71,7 +75,6 @@ class MainEventRegistry(BaseEventRegistry):
             ReceiverReadyHandler(),
             SenderPairRequestHandler(),
             RequestProcessingHandler(),
-            ProcessingAcknowledgedHandler(),
             WorkerActiveHandler(),
             WorkerResultHandler(),
         ]
@@ -85,6 +88,7 @@ class MainEventRegistry(BaseEventRegistry):
         - SenderManager: DISCONNECT, SENDER_PAIR_REQUEST
         - PairManager: SENDER_PAIR_REQUEST
         - WorkerManager: REQUEST_PROCESSING, WORKER_ACTIVE, WORKER_RESULT
+        - JobManager: REQUEST_PROCESSING, WORKER_RESULT
 
         Args:
             handler: Handler instance
@@ -171,6 +175,13 @@ class MainEventRegistry(BaseEventRegistry):
                         MainEvents.WORKER_RESULT,
                     }:
                         data["__worker_manager__"] = self._worker_manager
+
+                    # JobManager: cần cho REQUEST_PROCESSING, WORKER_RESULT
+                    if handler.event in {
+                        MainEvents.REQUEST_PROCESSING,
+                        MainEvents.WORKER_RESULT,
+                    }:
+                        data["__job_manager__"] = self._job_manager
 
                 # Execute handler với đầy đủ parameters: (sio, sid, data)
                 await handler.handle(self._sio, sid, data)

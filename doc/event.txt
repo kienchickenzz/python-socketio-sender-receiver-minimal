@@ -1,0 +1,40 @@
+Client
+	request-processing
+	
+Worker
+	worker-job
+	worker-result
+
+Server
+	processing-result
+	
+request-processing -> worker-job -> worker-result -> processing-result
+
+----------
+All
+	- connect
+	- connection-confirmed: nhận id từ server để làm định danh duy nhất trong hệ thống
+	- disconnect
+
+Receiver (SocketIO Client)
+	- receiver-ready: gửi id của mình cho server để broadcast đến tất cả sender
+	- pair-request-success
+	- receiver-disconnected
+
+Sender (SocketIO Client)
+	- sender-pair-request
+	- pair-request-success
+	- pair-request-failed
+	- sender-disconnected
+	
+Worker (SocketIO Client)
+	- worker-ready
+	
+	
+
+Worker (Celery)
+
+Server (SocketIO Server)
+
+
+

@@ -21,9 +21,12 @@ class MainEvents(BaseEvents):
     PAIR_REQUEST_FAILED = SocketEvent("pair-request-failed")
 
     REQUEST_PROCESSING = SocketEvent("request-processing")
-    PROCESSING_ACKNOWLEDGED = SocketEvent("processing-acknowledged")
 
     WORKER_ACTIVE = SocketEvent("worker_active")
+    
     WORKER_JOB = SocketEvent("worker-job")
     WORKER_RESULT = SocketEvent("worker-result")
     PROCESSING_RESULT = SocketEvent("processing-result")
+
+    RECEIVER_DISCONNECTED = SocketEvent("receiver-disconnected")
+    SENDER_DISCONNECTED = SocketEvent("sender-disconnected")

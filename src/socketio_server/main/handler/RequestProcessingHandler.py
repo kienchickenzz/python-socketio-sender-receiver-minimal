@@ -11,6 +11,7 @@ from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
 from src.socketio_server.main.manager.WorkerManager import WorkerManager
+from src.socketio_server.main.manager.JobManager import JobManager
 from src.socketio_server.main.enum.WorkerStatus import WorkerStatus
 from src.shared.dto.processing import RequestProcessingDto, WorkerJobDto
 
@@ -39,6 +40,7 @@ class RequestProcessingHandler(IEventHandler):
                 - receiver_id: ID của receiver
                 - data: Dãy số cần xử lý (list of int)
                 - __worker_manager__: WorkerManager injected từ registry
+                - __job_manager__: JobManager injected từ registry
 
         Returns:
             None (fire-and-forget)
@@ -48,6 +50,7 @@ class RequestProcessingHandler(IEventHandler):
             return
 
         worker_manager: WorkerManager | None = data.get("__worker_manager__")
+        job_manager: JobManager | None = data.get("__job_manager__")
 
         # Deserialize data thành DTO
         try:
@@ -67,6 +70,10 @@ class RequestProcessingHandler(IEventHandler):
 
         if not worker_manager:
             print(f"[RequestProcessingHandler] ❌ No WorkerManager injected")
+            return
+
+        if not job_manager:
+            print(f"[RequestProcessingHandler] ❌ No JobManager injected")
             return
 
         # Lấy tất cả workers đang ACTIVE
@@ -102,4 +109,12 @@ class RequestProcessingHandler(IEventHandler):
         )
 
         print(f"[RequestProcessingHandler] ✅ Emitted worker-job to worker {worker_id}")
+
+        # Thêm job vào JobManager để tracking
+        job_id = job_manager.add_job(
+            worker_id=worker_id, sender_id=dto.sender_id, pair_id=dto.pair_id
+        )
+
+        print(f"[RequestProcessingHandler] 📝 Created job tracking: {job_id}")
+        print(f"[RequestProcessingHandler] Total active jobs: {job_manager.count()}")
         print(f"{'='*60}\n")

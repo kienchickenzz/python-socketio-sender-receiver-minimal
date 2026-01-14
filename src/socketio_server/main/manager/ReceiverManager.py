@@ -3,7 +3,7 @@ ReceiverManager - Singleton manager quản lý active receivers
 
 Quản lý tập hợp các receiver đang active, cho phép thêm, xóa và cập nhật trạng thái.
 """
-from typing import Dict, Optional
+from typing import Optional
 
 from src.socketio_server.main.model.ReceiverData import ReceiverData
 from src.socketio_server.main.enum.ReceiverStatus import ReceiverStatus
@@ -27,7 +27,7 @@ class ReceiverManager:
     """
 
     _instance = None
-    _receivers: Dict[str, ReceiverData] = {}
+    _receivers: dict[str, ReceiverData] = {}
 
     def __new__(cls):
         """

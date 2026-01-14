@@ -3,7 +3,7 @@ SenderManager - Singleton manager quản lý active senders
 
 Quản lý tập hợp các sender đang active, cho phép thêm, xóa và cập nhật trạng thái.
 """
-from typing import Dict, Optional
+from typing import Optional
 
 from src.socketio_server.main.model.SenderData import SenderData
 from src.socketio_server.main.enum.SenderStatus import SenderStatus
@@ -27,7 +27,7 @@ class SenderManager:
     """
 
     _instance = None
-    _senders: Dict[str, SenderData] = {}
+    _senders: dict[str, SenderData] = {}
 
     def __new__(cls):
         """

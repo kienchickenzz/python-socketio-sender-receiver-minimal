@@ -3,7 +3,7 @@ WorkerManager - Singleton manager quản lý active workers
 
 Quản lý tập hợp các worker đang active, cho phép thêm, xóa và cập nhật trạng thái.
 """
-from typing import Dict, Optional
+from typing import Optional
 
 from src.socketio_server.main.model.WorkerData import WorkerData
 from src.socketio_server.main.enum.WorkerStatus import WorkerStatus
@@ -27,7 +27,7 @@ class WorkerManager:
     """
 
     _instance = None
-    _workers: Dict[str, WorkerData] = {}
+    _workers: dict[str, WorkerData] = {}
 
     def __new__(cls):
         """
