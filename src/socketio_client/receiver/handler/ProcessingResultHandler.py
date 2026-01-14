@@ -4,10 +4,12 @@ ProcessingResultHandler - Xử lý khi nhận kết quả từ server
 Handler nhận kết quả đã xử lý từ worker thông qua server và in ra.
 """
 from socketio import AsyncClient
+from pydantic import ValidationError
 
 from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.receiver.enum.ReceiverEvent import ReceiverEvent
 from src.socketio_client.receiver.enum.ReceiverNamespace import ReceiverNamespace
+from src.shared.dto.processing import ProcessingResultDto
 
 
 class ProcessingResultHandler(IEventHandler):
@@ -42,21 +44,22 @@ class ProcessingResultHandler(IEventHandler):
             print(f"[Receiver] processing-result received but no data")
             return None
 
-        pair_id = data.get("pair_id")
-        sender_id = data.get("sender_id")
-        worker_id = data.get("worker_id")
-        original_data = data.get("original_data", [])
-        result = data.get("result", [])
+        # Deserialize data thành DTO
+        try:
+            dto = ProcessingResultDto(**data)
+        except ValidationError as e:
+            print(f"[Receiver] Invalid processing-result data: {e}")
+            return None
 
         print(f"\n{'='*60}")
         print(f"[Receiver] 🎉 PROCESSING RESULT RECEIVED")
-        print(f"[Receiver] Pair ID: {pair_id}")
-        print(f"[Receiver] Sender ID: {sender_id}")
-        print(f"[Receiver] Worker ID: {worker_id}")
+        print(f"[Receiver] Pair ID: {dto.pair_id}")
+        print(f"[Receiver] Sender ID: {dto.sender_id}")
+        print(f"[Receiver] Worker ID: {dto.worker_id}")
         print(f"[Receiver] ")
         print(f"[Receiver] 📊 DATA COMPARISON:")
-        print(f"[Receiver] Original data: {original_data}")
-        print(f"[Receiver] Processed result: {result}")
+        print(f"[Receiver] Original data: {dto.original_data}")
+        print(f"[Receiver] Processed result: {dto.result}")
         print(f"[Receiver] ")
         print(f"[Receiver] ✅ Data has been sorted in ascending order!")
         print(f"{'='*60}\n")

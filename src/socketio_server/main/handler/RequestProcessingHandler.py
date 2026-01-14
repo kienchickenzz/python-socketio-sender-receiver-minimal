@@ -5,12 +5,14 @@ Handler nhận data từ sender và chuyển tiếp cho worker để xử lý.
 """
 import random
 from socketio import AsyncServer
+from pydantic import ValidationError
 
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
 from src.socketio_server.main.manager.WorkerManager import WorkerManager
 from src.socketio_server.main.enum.WorkerStatus import WorkerStatus
+from src.shared.dto.processing import RequestProcessingDto, WorkerJobDto
 
 
 class RequestProcessingHandler(IEventHandler):
@@ -45,19 +47,22 @@ class RequestProcessingHandler(IEventHandler):
             print(f"[RequestProcessingHandler] No data received from {client_sid}")
             return
 
-        pair_id = data.get("pair_id")
-        sender_id = data.get("sender_id")
-        receiver_id = data.get("receiver_id")
-        processing_data = data.get("data", [])
         worker_manager: WorkerManager | None = data.get("__worker_manager__")
+
+        # Deserialize data thành DTO
+        try:
+            dto = RequestProcessingDto(**data)
+        except ValidationError as e:
+            print(f"[RequestProcessingHandler] Invalid data format from {client_sid}: {e}")
+            return
 
         print(f"\n{'='*60}")
         print(f"[RequestProcessingHandler] 📥 RECEIVED PROCESSING REQUEST")
-        print(f"[RequestProcessingHandler] Pair ID: {pair_id}")
-        print(f"[RequestProcessingHandler] Sender ID: {sender_id}")
-        print(f"[RequestProcessingHandler] Receiver ID: {receiver_id}")
-        print(f"[RequestProcessingHandler] Data: {processing_data}")
-        print(f"[RequestProcessingHandler] Data length: {len(processing_data)}")
+        print(f"[RequestProcessingHandler] Pair ID: {dto.pair_id}")
+        print(f"[RequestProcessingHandler] Sender ID: {dto.sender_id}")
+        print(f"[RequestProcessingHandler] Receiver ID: {dto.receiver_id}")
+        print(f"[RequestProcessingHandler] Data: {dto.data}")
+        print(f"[RequestProcessingHandler] Data length: {len(dto.data)}")
         print(f"{'='*60}\n")
 
         if not worker_manager:
@@ -78,15 +83,20 @@ class RequestProcessingHandler(IEventHandler):
         print(f"[RequestProcessingHandler] 🎯 Selected worker: {worker_id}")
         print(f"[RequestProcessingHandler] Total ACTIVE workers: {len(active_workers)}")
 
+        # Tạo DTO và serialize để emit
+        job_dto = WorkerJobDto(
+            pair_id=dto.pair_id,
+            sender_id=dto.sender_id,
+            receiver_id=dto.receiver_id,
+            worker_id=worker_id,
+            data=dto.data,
+        )
+        payload = job_dto.model_dump(by_alias=True)
+
         # Emit worker-job event tới worker được chọn
         await sio.emit(
             MainEvents.WORKER_JOB.value,
-            {
-                "pair_id": pair_id,
-                "sender_id": sender_id,
-                "receiver_id": receiver_id,
-                "data": processing_data,
-            },
+            payload,
             room=worker_id,
             namespace=self.namespace.value,
         )

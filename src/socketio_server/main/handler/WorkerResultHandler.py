@@ -4,12 +4,14 @@ WorkerResultHandler - Xử lý khi worker trả về kết quả
 Handler nhận kết quả từ worker, gửi cho receiver, và cập nhật trạng thái worker.
 """
 from socketio import AsyncServer
+from pydantic import ValidationError
 
 from src.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio_server.main.enum.MainNamespace import MainNamespaces
 from src.socketio_server.main.manager.WorkerManager import WorkerManager
 from src.socketio_server.main.enum.WorkerStatus import WorkerStatus
+from src.shared.dto.processing import WorkerResultDto, ProcessingResultDto
 
 
 class WorkerResultHandler(IEventHandler):
@@ -46,48 +48,53 @@ class WorkerResultHandler(IEventHandler):
             print(f"[WorkerResultHandler] No data received from {client_sid}")
             return
 
-        pair_id = data.get("pair_id")
-        sender_id = data.get("sender_id")
-        receiver_id = data.get("receiver_id")
-        worker_id = data.get("worker_id")
-        original_data = data.get("original_data", [])
-        result = data.get("result", [])
         worker_manager: WorkerManager | None = data.get("__worker_manager__")
+
+        # Deserialize data thành DTO
+        try:
+            dto = WorkerResultDto(**data)
+        except ValidationError as e:
+            print(f"[WorkerResultHandler] Invalid data format from {client_sid}: {e}")
+            return
 
         print(f"\n{'='*60}")
         print(f"[WorkerResultHandler] 📦 RECEIVED WORKER RESULT")
-        print(f"[WorkerResultHandler] Pair ID: {pair_id}")
-        print(f"[WorkerResultHandler] Worker ID: {worker_id}")
-        print(f"[WorkerResultHandler] Sender ID: {sender_id}")
-        print(f"[WorkerResultHandler] Receiver ID: {receiver_id}")
-        print(f"[WorkerResultHandler] Original data: {original_data}")
-        print(f"[WorkerResultHandler] Processed result: {result}")
+        print(f"[WorkerResultHandler] Pair ID: {dto.pair_id}")
+        print(f"[WorkerResultHandler] Worker ID: {dto.worker_id}")
+        print(f"[WorkerResultHandler] Sender ID: {dto.sender_id}")
+        print(f"[WorkerResultHandler] Receiver ID: {dto.receiver_id}")
+        print(f"[WorkerResultHandler] Original data: {dto.original_data}")
+        print(f"[WorkerResultHandler] Processed result: {dto.result}")
         print(f"{'='*60}\n")
+
+        # Tạo DTO và serialize để emit
+        result_dto = ProcessingResultDto(
+            pair_id=dto.pair_id,
+            sender_id=dto.sender_id,
+            worker_id=dto.worker_id,
+            original_data=dto.original_data,
+            result=dto.result,
+        )
+        payload = result_dto.model_dump(by_alias=True)
 
         # Emit processing-result cho receiver
         await sio.emit(
             MainEvents.PROCESSING_RESULT.value,
-            {
-                "pair_id": pair_id,
-                "sender_id": sender_id,
-                "worker_id": worker_id,
-                "original_data": original_data,
-                "result": result,
-            },
-            room=receiver_id,
+            payload,
+            room=dto.receiver_id,
             namespace=self.namespace.value,
         )
 
-        print(f"[WorkerResultHandler] ✅ Emitted processing-result to receiver {receiver_id}")
+        print(f"[WorkerResultHandler] ✅ Emitted processing-result to receiver {dto.receiver_id}")
 
         # Cập nhật trạng thái worker về ACTIVE
-        if worker_manager and worker_id:
+        if worker_manager and dto.worker_id:
             # Worker đã hoàn thành job, set lại status về ACTIVE
-            success = worker_manager.update_status(worker_id, WorkerStatus.ACTIVE)
+            success = worker_manager.update_status(dto.worker_id, WorkerStatus.ACTIVE)
             if success:
-                print(f"[WorkerResultHandler] 🔄 Updated worker {worker_id} status back to ACTIVE")
+                print(f"[WorkerResultHandler] 🔄 Updated worker {dto.worker_id} status back to ACTIVE")
             else:
-                print(f"[WorkerResultHandler] ⚠️ Failed to update worker {worker_id} status")
+                print(f"[WorkerResultHandler] ⚠️ Failed to update worker {dto.worker_id} status")
         else:
             print(f"[WorkerResultHandler] ⚠️ No WorkerManager or worker_id to update status")
 

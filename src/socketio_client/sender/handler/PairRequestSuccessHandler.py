@@ -14,6 +14,7 @@ from src.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio_client.sender.enum.SenderEvent import SenderEvent
 from src.socketio_client.sender.enum.SenderNamespace import SenderNamespace
 from src.shared.dto.pairing import PairRequestSuccessDto
+from src.shared.dto.processing import RequestProcessingDto
 
 
 class PairRequestSuccessHandler(IEventHandler):
@@ -48,15 +49,19 @@ class PairRequestSuccessHandler(IEventHandler):
                     f"\n[Sender] 📤 Sending batch #{counter}: {random_numbers}"
                 )
 
+                # Tạo DTO và serialize để emit
+                dto = RequestProcessingDto(
+                    pair_id=pair_id,
+                    sender_id=sender_id,
+                    receiver_id=receiver_id,
+                    data=random_numbers,
+                )
+                payload = dto.model_dump(by_alias=True)
+
                 # Emit request-processing với dãy số ngẫu nhiên
                 await sio.emit(
                     SenderEvent.REQUEST_PROCESSING.value,
-                    {
-                        "pair_id": pair_id,
-                        "sender_id": sender_id,
-                        "receiver_id": receiver_id,
-                        "data": random_numbers,
-                    },
+                    payload,
                     namespace=SenderNamespace.ROOT.value,
                 )
 
