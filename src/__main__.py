@@ -24,18 +24,18 @@ if __name__ == "__main__":
     if options.server:
         import uvicorn
 
-        from src.run_server import create_app
+        from src.socketio.run_server import create_app
         app = create_app()
         uvicorn.run(app, host="0.0.0.0", port=5000)
 
     elif options.receiver:
-        from src.run_receiver import run_client as run_receiver
+        from src.socketio.run_receiver import run_client as run_receiver
         asyncio.run(run_receiver())
 
     elif options.sender:
-        from src.run_sender import run_client as run_sender
+        from src.socketio.run_sender import run_client as run_sender
         asyncio.run(run_sender())
 
     elif options.worker:
-        from src.run_worker import run_client as run_worker
+        from src.socketio.run_worker import run_client as run_worker
         asyncio.run(run_worker())
