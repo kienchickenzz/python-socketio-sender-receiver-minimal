@@ -8,6 +8,7 @@ from socketio import AsyncServer
 
 from src.socketio.socketio_server.shared.base.BaseEventRegistry import BaseEventRegistry
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
+
 from src.socketio.socketio_server.main.handler.ConnectHandler import ConnectHandler
 from src.socketio.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
 from src.socketio.socketio_server.main.handler.ReceiverReadyHandler import ReceiverReadyHandler
@@ -15,12 +16,16 @@ from src.socketio.socketio_server.main.handler.SenderPairRequestHandler import S
 from src.socketio.socketio_server.main.handler.RequestProcessingHandler import RequestProcessingHandler
 from src.socketio.socketio_server.main.handler.WorkerActiveHandler import WorkerActiveHandler
 from src.socketio.socketio_server.main.handler.WorkerResultHandler import WorkerResultHandler
+from src.socketio.socketio_server.main.handler.SenderDisconnectedHandler import SenderDisconnectedHandler
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio.socketio_server.main.manager.SenderManager import SenderManager
 from src.socketio.socketio_server.main.manager.PairManager import PairManager
 from src.socketio.socketio_server.main.manager.WorkerManager import WorkerManager
 from src.socketio.socketio_server.main.manager.JobManager import JobManager
+
 from src.socketio.socketio_server.main.enum.MainEvent import MainEvents
+
+from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
 
 
 class MainEventRegistry(BaseEventRegistry):
@@ -28,36 +33,41 @@ class MainEventRegistry(BaseEventRegistry):
     Registry cho Main Server, quản lý các event handlers.
 
     Kế thừa từ BaseEventRegistry và implement abstract method _create_handlers().
-    Quản lý ReceiverManager, SenderManager, PairManager, WorkerManager và inject
-    có điều kiện vào handlers dựa trên event type.
+    Nhận managers và event_publisher từ bên ngoài (dependency injection).
     """
 
-    def __init__(self, sio: AsyncServer):
+    def __init__(
+        self,
+        sio: AsyncServer,
+        # Managers
+        receiver_manager: ReceiverManager,
+        sender_manager: SenderManager,
+        pair_manager: PairManager,
+        worker_manager: WorkerManager,
+        job_manager: JobManager,
+        # Kafka Event Publisher
+        event_publisher: KafkaEventPublisher,
+    ):
         """
-        Initialize MainEventRegistry với ReceiverManager, SenderManager, PairManager, WorkerManager và JobManager.
+        Initialize MainEventRegistry với các dependencies được inject từ bên ngoài.
 
         Args:
-            sio: SocketIO AsyncServer instance
+            sio (AsyncServer): SocketIO AsyncServer instance
+            receiver_manager (ReceiverManager): Manager quản lý receivers
+            sender_manager (SenderManager): Manager quản lý senders
+            pair_manager (PairManager): Manager quản lý pairs
+            worker_manager (WorkerManager): Manager quản lý workers
+            job_manager (JobManager): Manager quản lý jobs
+            event_publisher (KafkaEventPublisher): Publisher để publish events lên Kafka
         """
-        # Khởi tạo ReceiverManager (singleton)
-        self._receiver_manager = ReceiverManager()
-        print("[MainEventRegistry] ReceiverManager initialized")
+        self._receiver_manager = receiver_manager
+        self._sender_manager = sender_manager
+        self._pair_manager = pair_manager
+        self._worker_manager = worker_manager
+        self._job_manager = job_manager
+        self._event_publisher = event_publisher
 
-        # Khởi tạo SenderManager (singleton)
-        self._sender_manager = SenderManager()
-        print("[MainEventRegistry] SenderManager initialized")
-
-        # Khởi tạo PairManager (singleton)
-        self._pair_manager = PairManager()
-        print("[MainEventRegistry] PairManager initialized")
-
-        # Khởi tạo WorkerManager (singleton)
-        self._worker_manager = WorkerManager()
-        print("[MainEventRegistry] WorkerManager initialized")
-
-        # Khởi tạo JobManager (singleton)
-        self._job_manager = JobManager()
-        print("[MainEventRegistry] JobManager initialized")
+        print("[MainEventRegistry] Dependencies injected successfully")
 
         # Gọi parent __init__ để đăng ký handlers
         super().__init__(sio)
@@ -66,13 +76,16 @@ class MainEventRegistry(BaseEventRegistry):
         """
         Tạo và trả về danh sách các event handlers cho Main Server.
 
+        Handlers cần Kafka publisher được inject qua constructor.
+
         Returns:
-            List of main server event handlers
+            list[IEventHandler]: Danh sách handler instances
         """
         return [
             ConnectHandler(),
             DisconnectHandler(),
-            ReceiverReadyHandler(),
+            ReceiverReadyHandler(event_publisher=self._event_publisher),
+            SenderDisconnectedHandler(event_publisher=self._event_publisher),
             SenderPairRequestHandler(),
             RequestProcessingHandler(),
             WorkerActiveHandler(),

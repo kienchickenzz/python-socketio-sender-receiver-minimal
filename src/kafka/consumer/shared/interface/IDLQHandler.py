@@ -8,8 +8,8 @@ Trách nhiệm:
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
-from src.consumer.shared.enum.KafkaTopic import KafkaTopic
-from src.consumer.shared.enum.ConsumerGroup import ConsumerGroup
+from src.kafka.consumer.shared.enum.KafkaTopic import KafkaTopic
+from src.kafka.consumer.shared.enum.ConsumerGroup import ConsumerGroup
 
 
 class IDLQHandler(ABC):

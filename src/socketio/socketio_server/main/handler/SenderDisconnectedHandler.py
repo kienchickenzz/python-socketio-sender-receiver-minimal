@@ -1,41 +1,54 @@
 """
 SenderDisconnectedHandler - Xử lý khi sender ngắt kết nối
 
-Handler xử lý sự kiện sender-disconnected từ server khi sender disconnect.
+Handler chỉ publish sự kiện vào Kafka, không xử lý logic trực tiếp.
+Logic xử lý cleanup được chuyển sang Kafka consumer.
 """
+from datetime import datetime
 from socketio import AsyncServer
+
+from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
+from src.kafka.producer.server.dto.SenderDisconnectedEventDto import SenderDisconnectedEventDto
 
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio.socketio_server.main.enum.MainNamespace import MainNamespaces
-from src.socketio.socketio_server.main.manager.SenderManager import SenderManager
-from src.socketio.socketio_server.main.manager.PairManager import PairManager
 
 
 class SenderDisconnectedHandler(IEventHandler):
     """
     Handler xử lý sự kiện sender-disconnected.
 
-    Stateless handler - xử lý khi sender disconnect khỏi server.
-    Logic sẽ bao gồm:
-    - Xóa sender khỏi SenderManager
-    - Xử lý pair nếu sender đang trong pair
-    - Thông báo receiver nếu cần
+    Chỉ publish event vào Kafka, không xử lý logic cleanup trực tiếp.
+    Logic cleanup được xử lý bởi Kafka SenderDisconnectConsumerHandler.
+
+    Flow:
+        1. Nhận sự kiện sender disconnect từ SocketIO
+        2. Tạo SenderDisconnectedEventDto (Kafka DTO) với timestamp
+        3. Publish lên Kafka
+        4. Kafka consumer sẽ xử lý logic cleanup
     """
 
     event = MainEvents.SENDER_DISCONNECTED
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
+    def __init__(self, event_publisher: KafkaEventPublisher):
         """
-        Xử lý khi sender disconnect.
+        Khởi tạo handler với Kafka publisher được inject từ bên ngoài.
 
         Args:
-            sio: SocketIO AsyncServer instance
-            client_sid: Socket ID của sender đã disconnect
-            data: Dict chứa:
-                - __sender_manager__: SenderManager instance (injected by registry)
-                - __pair_manager__: PairManager instance (injected by registry)
+            event_publisher (KafkaEventPublisher): Generic publisher để publish events
+        """
+        self._publisher = event_publisher
+
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
+        """
+        Publish sự kiện sender disconnected vào Kafka.
+
+        Args:
+            sio (AsyncServer): SocketIO AsyncServer instance
+            client_sid (str | None): Socket ID của sender đã disconnect
+            data: Data từ event (không sử dụng)
 
         Returns:
             None (fire-and-forget)
@@ -44,18 +57,21 @@ class SenderDisconnectedHandler(IEventHandler):
             print(f"[SenderDisconnectedHandler] No client_sid provided")
             return
 
+        timestamp = datetime.now().isoformat()
+
         print(f"\n{'='*60}")
-        print(f"[SenderDisconnectedHandler] 🔴 SENDER DISCONNECTED")
+        print(f"[SenderDisconnectedHandler] SENDER DISCONNECTED")
         print(f"[SenderDisconnectedHandler] Client SID: {client_sid}")
+        print(f"[SenderDisconnectedHandler] Timestamp: {timestamp}")
+        print(f"[SenderDisconnectedHandler] Publishing to Kafka...")
         print(f"{'='*60}\n")
 
-        # TODO: Implement disconnect logic
-        # 1. Get sender_manager and pair_manager from data
-        # 2. Find sender by client_sid
-        # 3. Check if sender is in a pair
-        # 4. If paired, handle pair cleanup and notify receiver
-        # 5. Remove sender from SenderManager
-        # 6. Log final state
+        # Tạo Kafka DTO và publish
+        kafka_dto = SenderDisconnectedEventDto(
+            sender_id=client_sid,
+            timestamp=timestamp,
+        )
+        self._publisher.publish(kafka_dto)
 
-        print(f"[SenderDisconnectedHandler] ⚠️ Handler logic not yet implemented")
+        print(f"[SenderDisconnectedHandler] Published to Kafka topic: {kafka_dto.get_topic().value}")
         print(f"{'='*60}\n")

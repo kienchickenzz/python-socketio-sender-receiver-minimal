@@ -12,11 +12,11 @@ import threading
 from abc import ABC, abstractmethod
 from kafka import KafkaConsumer
 
-from src.consumer.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
-from src.consumer.infrastructure.DeadLetterPublisher import DeadLetterPublisher
-from src.consumer.shared.interface.IEventHandler import IEventHandler
-from src.consumer.shared.interface.IDLQHandler import IDLQHandler
-from src.consumer.shared.model.DLQMessage import DLQMessage, ErrorInfo
+from src.kafka.consumer.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
+from src.kafka.consumer.infrastructure.DeadLetterPublisher import DeadLetterPublisher
+from src.kafka.consumer.shared.interface.IEventHandler import IEventHandler
+from src.kafka.consumer.shared.interface.IDLQHandler import IDLQHandler
+from src.kafka.consumer.shared.model.DLQMessage import DLQMessage, ErrorInfo
 
 
 class BaseEventRegistry(ABC):

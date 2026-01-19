@@ -14,8 +14,10 @@ class JobStatus(str, Enum):
         IN_PROGRESS: Job đang được worker xử lý
         COMPLETED: Job đã hoàn thành
         INCOMPLETE: Job chưa hoàn thành (đang chờ hoặc failed)
+        CANCEL: Job bị hủy (ví dụ: sender disconnect)
     """
 
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     INCOMPLETE = "INCOMPLETE"
+    CANCEL = "CANCEL"
