@@ -4,17 +4,21 @@ ServerRegistry - Registry cho Server domain Kafka consumers
 Đăng ký và quản lý các consumer handlers cho server events:
 - SenderDisconnectConsumerHandler: Xử lý khi sender disconnect
 - ReceiverReadyConsumerHandler: Xử lý khi receiver sẵn sàng
+- WorkerActiveConsumerHandler: Xử lý khi worker báo active
 """
 from src.kafka.consumer.shared.base.BaseEventRegistry import BaseEventRegistry
 from src.kafka.consumer.shared.interface.IEventHandler import IEventHandler
-from src.kafka.consumer.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
-from src.kafka.consumer.infrastructure.DeadLetterPublisher import DeadLetterPublisher
+from src.kafka.consumer.shared.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
+from src.kafka.consumer.shared.infrastructure.DeadLetterPublisher import DeadLetterPublisher
 
 from src.kafka.consumer.server.handler.SenderDisconnectConsumerHandler import (
     SenderDisconnectConsumerHandler,
 )
 from src.kafka.consumer.server.handler.ReceiverReadyConsumerHandler import (
     ReceiverReadyConsumerHandler,
+)
+from src.kafka.consumer.server.handler.WorkerActiveConsumerHandler import (
+    WorkerActiveConsumerHandler,
 )
 
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
@@ -36,6 +40,7 @@ class ServerRegistry(BaseEventRegistry):
     Handlers:
         - SenderDisconnectConsumerHandler: Cleanup khi sender disconnect
         - ReceiverReadyConsumerHandler: Thêm receiver vào pool khi ready
+        - WorkerActiveConsumerHandler: Thêm/update worker khi active
 
     Example:
         # Khởi tạo managers ở application root
@@ -103,5 +108,8 @@ class ServerRegistry(BaseEventRegistry):
             ),
             ReceiverReadyConsumerHandler(
                 receiver_manager=self._receiver_manager,
+            ),
+            WorkerActiveConsumerHandler(
+                worker_manager=self._worker_manager,
             ),
         ]

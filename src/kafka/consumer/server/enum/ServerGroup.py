@@ -17,9 +17,13 @@ class ServerGroup(BaseGroups):
         SENDER_DISCONNECT_DLQ: Group cho xử lý DLQ của sender disconnect
         RECEIVER_READY: Group cho xử lý receiver ready
         RECEIVER_READY_DLQ: Group cho xử lý DLQ của receiver ready
+        WORKER_ACTIVE: Group cho xử lý worker active
+        WORKER_ACTIVE_DLQ: Group cho xử lý DLQ của worker active
     """
 
     SENDER_DISCONNECT = ConsumerGroup("server-sender-disconnect-group")
     SENDER_DISCONNECT_DLQ = ConsumerGroup("server-sender-disconnect-dlq-group")
     RECEIVER_READY = ConsumerGroup("server-receiver-ready-group")
     RECEIVER_READY_DLQ = ConsumerGroup("server-receiver-ready-dlq-group")
+    WORKER_ACTIVE = ConsumerGroup("server-worker-active-group")
+    WORKER_ACTIVE_DLQ = ConsumerGroup("server-worker-active-dlq-group")

@@ -1,44 +1,57 @@
 """
 WorkerActiveHandler - Xử lý khi worker báo active
 
-Handler xử lý khi worker emit worker_active event sau khi nhận được session ID.
+Handler chỉ publish sự kiện vào Kafka, không xử lý logic trực tiếp.
+Logic xử lý (thêm/update worker trong pool) được chuyển sang Kafka consumer.
 """
 from socketio import AsyncServer
 from pydantic import ValidationError
 
+from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
+from src.kafka.producer.server.dto.WorkerActiveEventDto import WorkerActiveEventDto
+
+from src.socketio.shared.dto.connection import WorkerActiveDto
+
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio.socketio_server.main.enum.MainNamespace import MainNamespaces
-from src.socketio.socketio_server.main.manager.WorkerManager import WorkerManager
-from src.socketio.socketio_server.main.enum.WorkerStatus import WorkerStatus
-from src.socketio.shared.dto.connection import WorkerActiveDto
 
 
 class WorkerActiveHandler(IEventHandler):
     """
     Handler xử lý sự kiện worker_active.
 
-    Stateless handler - nhận worker_id từ client và quản lý trạng thái trong WorkerManager.
-    Logic:
-    - Nếu worker chưa có trong manager → thêm mới với status ACTIVE
-    - Nếu worker đã có:
-      - Status là IDLE → update sang ACTIVE
-      - Status đã là ACTIVE → không làm gì
+    Chỉ publish event vào Kafka, không xử lý logic trực tiếp.
+    Logic xử lý được thực hiện bởi Kafka WorkerActiveConsumerHandler.
+
+    Flow:
+        1. Nhận sự kiện worker_active từ SocketIO
+        2. Validate data format với WorkerActiveDto (client DTO)
+        3. Tạo WorkerActiveEventDto (Kafka DTO) và publish
+        4. Kafka consumer sẽ thêm/update worker trong pool
     """
 
     event = MainEvents.WORKER_ACTIVE
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
+    def __init__(self, event_publisher: KafkaEventPublisher):
         """
-        Xử lý khi worker emit worker_active event.
+        Khởi tạo handler với Kafka publisher được inject từ bên ngoài.
 
         Args:
-            sio: SocketIO AsyncServer instance
-            client_sid: Socket ID của worker
+            event_publisher (KafkaEventPublisher): Generic publisher để publish events
+        """
+        self._publisher = event_publisher
+
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
+        """
+        Publish sự kiện worker active vào Kafka.
+
+        Args:
+            sio (AsyncServer): SocketIO AsyncServer instance
+            client_sid (str | None): Socket ID của worker
             data: Dict chứa:
-                - dto.session_id: ID của worker
-                - __worker_manager__: WorkerManager injected từ registry
+                - session_id: ID của worker
 
         Returns:
             None (fire-and-forget)
@@ -47,43 +60,23 @@ class WorkerActiveHandler(IEventHandler):
             print(f"[WorkerActiveHandler] No data received from {client_sid}")
             return
 
-        worker_manager: WorkerManager | None = data.get("__worker_manager__")
-        if not worker_manager:
-            print(f"[WorkerActiveHandler] No WorkerManager injected")
-            return
-
-        # Deserialize data thành DTO
+        # Validate data format từ client
         try:
-            dto = WorkerActiveDto(**data)
+            client_dto = WorkerActiveDto(**data)
         except ValidationError as e:
             print(f"[WorkerActiveHandler] Invalid data format from {client_sid}: {e}")
             return
 
-        # Check xem worker đã tồn tại trong manager chưa
-        existing_worker = worker_manager.get_worker(dto.session_id)
+        print(f"\n{'='*60}")
+        print(f"[WorkerActiveHandler] WORKER ACTIVE")
+        print(f"[WorkerActiveHandler] Session ID: {client_dto.session_id}")
+        print(f"[WorkerActiveHandler] Client SID: {client_sid}")
+        print(f"[WorkerActiveHandler] Publishing to Kafka...")
+        print(f"{'='*60}\n")
 
-        if existing_worker is None:
-            # Worker chưa có → thêm mới với status ACTIVE
-            worker_manager.add_worker(dto.session_id, WorkerStatus.ACTIVE)
-            print(f"\n{'='*60}")
-            print(f"[WorkerActiveHandler] ✅ NEW WORKER REGISTERED")
-            print(f"[WorkerActiveHandler] Worker ID: {dto.session_id}")
-            print(f"[WorkerActiveHandler] Status: ACTIVE")
-            print(f"[WorkerActiveHandler] Total workers: {worker_manager.count()}")
-            print(f"{'='*60}\n")
+        # Chuyển đổi client DTO sang Kafka DTO và publish
+        kafka_dto = WorkerActiveEventDto(session_id=client_dto.session_id)
+        self._publisher.publish(kafka_dto)
 
-        else:
-            # Worker đã tồn tại → check status
-            if existing_worker.status == WorkerStatus.IDLE:
-                # Update từ IDLE sang ACTIVE
-                worker_manager.update_status(dto.session_id, WorkerStatus.ACTIVE)
-                print(f"\n{'='*60}")
-                print(f"[WorkerActiveHandler] 🔄 WORKER STATUS UPDATED")
-                print(f"[WorkerActiveHandler] Worker ID: {dto.session_id}")
-                print(f"[WorkerActiveHandler] Old Status: IDLE")
-                print(f"[WorkerActiveHandler] New Status: ACTIVE")
-                print(f"{'='*60}\n")
-
-            elif existing_worker.status == WorkerStatus.ACTIVE:
-                # Đã ACTIVE rồi → không làm gì
-                print(f"[WorkerActiveHandler] Worker {dto.session_id} is already ACTIVE, no action needed")
+        print(f"[WorkerActiveHandler] Published to Kafka topic: {kafka_dto.get_topic().value}")
+        print(f"{'='*60}\n")

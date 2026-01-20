@@ -10,7 +10,7 @@ from src.socketio.socketio_server.shared.base.BaseEventRegistry import BaseEvent
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 
 from src.socketio.socketio_server.main.handler.ConnectHandler import ConnectHandler
-from src.socketio.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
+# from src.socketio.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
 from src.socketio.socketio_server.main.handler.ReceiverReadyHandler import ReceiverReadyHandler
 from src.socketio.socketio_server.main.handler.SenderPairRequestHandler import SenderPairRequestHandler
 from src.socketio.socketio_server.main.handler.RequestProcessingHandler import RequestProcessingHandler
@@ -83,12 +83,12 @@ class MainEventRegistry(BaseEventRegistry):
         """
         return [
             ConnectHandler(),
-            DisconnectHandler(),
+            # DisconnectHandler(),
             ReceiverReadyHandler(event_publisher=self._event_publisher),
             SenderDisconnectedHandler(event_publisher=self._event_publisher),
             SenderPairRequestHandler(),
             RequestProcessingHandler(),
-            WorkerActiveHandler(),
+            WorkerActiveHandler(event_publisher=self._event_publisher),
             WorkerResultHandler(),
         ]
 
@@ -111,11 +111,11 @@ class MainEventRegistry(BaseEventRegistry):
         """
 
         # Xác định các events cần inject managers
+        # Lưu ý: WORKER_ACTIVE không cần manager vì đã chuyển logic sang Kafka consumer
         events_need_manager = {
             MainEvents.DISCONNECT,
             MainEvents.RECEIVER_READY,
             MainEvents.SENDER_PAIR_REQUEST,
-            MainEvents.WORKER_ACTIVE,
             MainEvents.REQUEST_PROCESSING,
             MainEvents.WORKER_RESULT,
         }
@@ -181,10 +181,10 @@ class MainEventRegistry(BaseEventRegistry):
                     if handler.event == MainEvents.SENDER_PAIR_REQUEST:
                         data["__pair_manager__"] = self._pair_manager
 
-                    # WorkerManager: cần cho REQUEST_PROCESSING, WORKER_ACTIVE, WORKER_RESULT
+                    # WorkerManager: cần cho REQUEST_PROCESSING, WORKER_RESULT
+                    # Lưu ý: WORKER_ACTIVE không cần vì đã chuyển logic sang Kafka consumer
                     if handler.event in {
                         MainEvents.REQUEST_PROCESSING,
-                        MainEvents.WORKER_ACTIVE,
                         MainEvents.WORKER_RESULT,
                     }:
                         data["__worker_manager__"] = self._worker_manager

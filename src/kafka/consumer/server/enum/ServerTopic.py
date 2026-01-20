@@ -17,9 +17,13 @@ class ServerTopic(BaseTopics):
         SENDER_DISCONNECTED_DLQ: DLQ topic cho sender disconnect failures
         RECEIVER_READY: Topic cho sự kiện receiver ready
         RECEIVER_READY_DLQ: DLQ topic cho receiver ready failures
+        WORKER_ACTIVE: Topic cho sự kiện worker active
+        WORKER_ACTIVE_DLQ: DLQ topic cho worker active failures
     """
 
     SENDER_DISCONNECTED = KafkaTopic("server.sender-disconnected")
     SENDER_DISCONNECTED_DLQ = KafkaTopic("server.sender-disconnected.dlq")
     RECEIVER_READY = KafkaTopic("server.receiver-ready")
     RECEIVER_READY_DLQ = KafkaTopic("server.receiver-ready.dlq")
+    WORKER_ACTIVE = KafkaTopic("server.worker-active")
+    WORKER_ACTIVE_DLQ = KafkaTopic("server.worker-active.dlq")

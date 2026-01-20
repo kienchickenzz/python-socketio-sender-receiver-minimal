@@ -7,10 +7,10 @@ Khởi tạo Kafka consumers cho server events, bao gồm:
 - Inject managers vào ServerRegistry
 - Start consumers (blocking)
 """
-from src.kafka.consumer.infrastructure.KafkaConfig import KafkaConfig
-from src.kafka.consumer.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
-from src.kafka.consumer.infrastructure.KafkaProducerFactory import KafkaProducerFactory
-from src.kafka.consumer.infrastructure.DeadLetterPublisher import DeadLetterPublisher
+from src.kafka.consumer.shared.infrastructure.KafkaConfig import KafkaConfig
+from src.kafka.consumer.shared.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
+from src.kafka.consumer.shared.infrastructure.KafkaProducerFactory import KafkaProducerFactory
+from src.kafka.consumer.shared.infrastructure.DeadLetterPublisher import DeadLetterPublisher
 from src.kafka.consumer.server.ServerRegistry import ServerRegistry
 from src.kafka.shared.base.JsonSerializer import JsonSerializer
 

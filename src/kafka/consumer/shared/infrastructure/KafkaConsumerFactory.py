@@ -10,7 +10,7 @@ from kafka import KafkaConsumer
 
 from src.kafka.shared.base.JsonSerializer import JsonSerializer
 
-from src.kafka.consumer.infrastructure.KafkaConfig import KafkaConfig
+from src.kafka.consumer.shared.infrastructure.KafkaConfig import KafkaConfig
 from src.kafka.consumer.shared.interface.IEventHandler import IEventHandler
 from src.kafka.consumer.shared.interface.IDLQHandler import IDLQHandler
 

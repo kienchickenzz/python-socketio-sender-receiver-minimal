@@ -1,31 +1,37 @@
 """
-BaseEventRegistry - Registry pattern cho Kafka consumer handlers
+BaseEmitRegistry - Registry pattern cho Kafka emit consumer handlers
 
 Trách nhiệm:
-- Quản lý danh sách handlers
+- Quản lý danh sách emit handlers
 - Dùng factory để tạo consumer cho từng handler (main + DLQ)
 - Mỗi handler chạy 2 threads: main consumer và DLQ consumer
+- Truyền AsyncServer cho handlers để emit SocketIO events
 - Graceful shutdown tất cả threads
 """
+import asyncio
 import signal
 import threading
 from abc import ABC, abstractmethod
 from kafka import KafkaConsumer
+from socketio import AsyncServer
 
-from src.kafka.consumer.shared.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
-from src.kafka.consumer.shared.infrastructure.DeadLetterPublisher import DeadLetterPublisher
-from src.kafka.consumer.shared.interface.IEventHandler import IEventHandler
-from src.kafka.consumer.shared.interface.IDLQHandler import IDLQHandler
-from src.kafka.consumer.shared.model.DLQMessage import DLQMessage, ErrorInfo
+from src.socketio.socketio_server.shared.kafka_consumer.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
+from src.socketio.socketio_server.shared.kafka_consumer.infrastructure.DeadLetterPublisher import DeadLetterPublisher
+from src.socketio.socketio_server.shared.kafka_consumer.interface.IEmitHandler import IEmitHandler
+from src.socketio.socketio_server.shared.kafka_consumer.interface.IDLQHandler import IDLQHandler
+from src.socketio.socketio_server.shared.kafka_consumer.model.DLQMessage import DLQMessage, ErrorInfo
 
 
-class BaseEventRegistry(ABC):
+class BaseEmitRegistry(ABC):
     """
-    Base Registry cho Kafka event handlers.
+    Base Registry cho Kafka emit handlers.
 
     Mỗi handler sẽ có 2 consumers:
-    - Main consumer: xử lý business logic
+    - Main consumer: xử lý emit logic
     - DLQ consumer: xử lý messages fail
+
+    Handlers nhận AsyncServer để emit SocketIO events.
+    Event loop được truyền vào để chạy async handlers từ synchronous threads.
 
     Subclass phải implement _create_handlers() để định nghĩa handlers.
 
@@ -33,8 +39,10 @@ class BaseEventRegistry(ABC):
         config = KafkaConfig(bootstrap_servers="localhost:9092")
         consumer_factory = KafkaConsumerFactory(config)
         dlq_publisher = DeadLetterPublisher(producer, serializer)
+        sio = AsyncServer(async_mode="asgi")
+        event_loop = asyncio.get_event_loop()
 
-        registry = PredictionRegistry(consumer_factory, dlq_publisher)
+        registry = MainEmitRegistry(consumer_factory, dlq_publisher, sio, event_loop)
         registry.register_all()
     """
 
@@ -48,6 +56,8 @@ class BaseEventRegistry(ABC):
         self,
         consumer_factory: KafkaConsumerFactory,
         dlq_publisher: DeadLetterPublisher,
+        sio: AsyncServer,
+        event_loop: asyncio.AbstractEventLoop,
     ) -> None:
         """
         Khởi tạo registry.
@@ -55,10 +65,14 @@ class BaseEventRegistry(ABC):
         Args:
             consumer_factory (KafkaConsumerFactory): Factory để tạo consumers
             dlq_publisher (DeadLetterPublisher): Publisher để gửi failed messages vào DLQ
+            sio (AsyncServer): SocketIO AsyncServer instance để emit events
+            event_loop (asyncio.AbstractEventLoop): Event loop để chạy async handlers
         """
         self._factory = consumer_factory
         self._dlq_publisher = dlq_publisher
-        self._handlers: dict[str, IEventHandler] = {}
+        self._sio = sio
+        self._event_loop = event_loop
+        self._handlers: dict[str, IEmitHandler] = {}
         self._consumers: list[KafkaConsumer] = []
         self._threads: list[threading.Thread] = []
         self._running = False
@@ -72,15 +86,15 @@ class BaseEventRegistry(ABC):
         signal.signal(signal.SIGTERM, self._signal_handler)
 
     @abstractmethod
-    def _create_handlers(self) -> list[IEventHandler]:
+    def _create_handlers(self) -> list[IEmitHandler]:
         """
         Tạo và trả về danh sách handlers.
 
         Subclass PHẢI implement method này.
-        Mỗi handler PHẢI implement cả IEventHandler và IDLQHandler.
+        Mỗi handler PHẢI implement cả IEmitHandler và IDLQHandler.
 
         Returns:
-            list[IEventHandler]: Danh sách handler instances
+            list[IEmitHandler]: Danh sách handler instances
         """
         pass
 
@@ -90,16 +104,17 @@ class BaseEventRegistry(ABC):
 
     def _run_main_consumer(
         self,
-        handler: IEventHandler,
+        handler: IEmitHandler,
         consumer: KafkaConsumer,
     ) -> None:
         """
         Polling loop cho main consumer (chạy trong thread riêng).
 
         Khi handle() fail, message sẽ được gửi vào DLQ topic.
+        Handler.handle() là async function, được chạy qua event_loop.
 
         Args:
-            handler (IEventHandler): Handler để xử lý messages
+            handler (IEmitHandler): Handler để xử lý messages
             consumer (KafkaConsumer): Consumer để poll
         """
         try:
@@ -111,7 +126,15 @@ class BaseEventRegistry(ABC):
                 for topic_partition, messages in records.items():
                     for msg in messages:
                         try:
-                            handler.handle(msg.value)
+                            # Run async handler from synchronous thread context
+                            # Sử dụng run_coroutine_threadsafe để schedule coroutine
+                            # trên event loop đang chạy trong main thread
+                            future = asyncio.run_coroutine_threadsafe(
+                                handler.handle(self._sio, msg.value),
+                                self._event_loop,
+                            )
+                            # Wait for the coroutine to complete
+                            future.result()
                         except Exception as e:
                             self._send_to_dlq(handler, msg.value, e)
                         finally:
@@ -143,7 +166,6 @@ class BaseEventRegistry(ABC):
                     for msg in messages:
                         try:
                             dlq_data = msg.value
-                            # TODO: Validate dlq_data structure with DTO for type safety
                             original_message = dlq_data.get("original_message", {})
                             error_info = dlq_data.get("error_info", {})
                             handler.handle_dlq(original_message, error_info)
@@ -156,7 +178,7 @@ class BaseEventRegistry(ABC):
 
     def _send_to_dlq(
         self,
-        handler: IEventHandler,
+        handler: IEmitHandler,
         original_message: dict,
         exception: Exception,
     ) -> None:
@@ -164,7 +186,7 @@ class BaseEventRegistry(ABC):
         Gửi failed message vào DLQ topic.
 
         Args:
-            handler (IEventHandler): Handler đã fail
+            handler (IEmitHandler): Handler đã fail
             original_message (dict): Message gốc
             exception (Exception): Exception đã xảy ra
         """
@@ -182,12 +204,12 @@ class BaseEventRegistry(ABC):
         if isinstance(handler, IDLQHandler):
             self._dlq_publisher.publish(handler.dlq_topic, dlq_message)
 
-    def _register_handler(self, handler: IEventHandler) -> None:
+    def _register_handler(self, handler: IEmitHandler) -> None:
         """
         Tạo 2 consumers và 2 threads cho handler (main + DLQ).
 
         Args:
-            handler (IEventHandler): Handler cần register
+            handler (IEmitHandler): Handler cần register
         """
         # Thread 1: Main consumer
         main_consumer = self._factory.create(handler)
@@ -196,7 +218,7 @@ class BaseEventRegistry(ABC):
         main_thread = threading.Thread(
             target=self._run_main_consumer,
             args=(handler, main_consumer),
-            name=f"main-{handler.topic.value}",
+            name=f"emit-main-{handler.topic.value}",
             daemon=True,
         )
         self._threads.append(main_thread)
@@ -209,7 +231,7 @@ class BaseEventRegistry(ABC):
             dlq_thread = threading.Thread(
                 target=self._run_dlq_consumer,
                 args=(handler, dlq_consumer),
-                name=f"dlq-{handler.dlq_topic.value}",
+                name=f"emit-dlq-{handler.dlq_topic.value}",
                 daemon=True,
             )
             self._threads.append(dlq_thread)
