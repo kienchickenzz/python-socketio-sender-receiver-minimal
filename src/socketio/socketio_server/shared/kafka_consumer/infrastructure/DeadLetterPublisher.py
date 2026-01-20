@@ -8,8 +8,8 @@ Trách nhiệm:
 """
 from kafka import KafkaProducer
 
+from src.socketio.socketio_server.shared.kafka_consumer.base.JsonSerializer import JsonSerializer
 from src.socketio.socketio_server.shared.kafka_consumer.enum.KafkaTopic import KafkaTopic
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
 from src.socketio.socketio_server.shared.kafka_consumer.model.DLQMessage import DLQMessage
 
 

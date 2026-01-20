@@ -12,6 +12,7 @@ import asyncio
 import signal
 import threading
 from abc import ABC, abstractmethod
+
 from kafka import KafkaConsumer
 from socketio import AsyncServer
 

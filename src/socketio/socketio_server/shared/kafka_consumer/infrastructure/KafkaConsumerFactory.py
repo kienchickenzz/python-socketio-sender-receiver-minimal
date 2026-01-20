@@ -8,7 +8,7 @@ Trách nhiệm:
 """
 from kafka import KafkaConsumer
 
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
+from src.socketio.socketio_server.shared.kafka_consumer.base.JsonSerializer import JsonSerializer
 
 from src.socketio.socketio_server.shared.kafka_consumer.infrastructure.KafkaConfig import KafkaConfig
 from src.socketio.socketio_server.shared.kafka_consumer.interface.IEmitHandler import IEmitHandler
