@@ -13,13 +13,13 @@ class EmitGroup(BaseGroups):
     Kế thừa từ BaseGroups và thêm các groups riêng cho emit.
 
     Attributes:
-        PAIR_RESULT: Group cho xử lý pair result
-        PAIR_RESULT_DLQ: Group cho xử lý DLQ của pair result
-        SENDER_DISCONNECTED: Group cho xử lý sender disconnected
-        SENDER_DISCONNECTED_DLQ: Group cho xử lý DLQ của sender disconnected
+        PAIR_REQUEST_SUCCESS: Group cho xử lý pair request success
+        PAIR_REQUEST_SUCCESS_DLQ: Group cho xử lý DLQ của pair request success
+        PAIR_REQUEST_FAILED: Group cho xử lý pair request failed
+        PAIR_REQUEST_FAILED_DLQ: Group cho xử lý DLQ của pair request failed
     """
 
-    PAIR_RESULT = ConsumerGroup("emit-pair-result-group")
-    PAIR_RESULT_DLQ = ConsumerGroup("emit-pair-result-dlq-group")
-    SENDER_DISCONNECTED = ConsumerGroup("emit-sender-disconnected-group")
-    SENDER_DISCONNECTED_DLQ = ConsumerGroup("emit-sender-disconnected-dlq-group")
+    PAIR_REQUEST_SUCCESS = ConsumerGroup("emit-pair-request-success-group")
+    PAIR_REQUEST_SUCCESS_DLQ = ConsumerGroup("emit-pair-request-success-dlq-group")
+    PAIR_REQUEST_FAILED = ConsumerGroup("emit-pair-request-failed-group")
+    PAIR_REQUEST_FAILED_DLQ = ConsumerGroup("emit-pair-request-failed-dlq-group")

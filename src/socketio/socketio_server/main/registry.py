@@ -86,7 +86,7 @@ class MainEventRegistry(BaseEventRegistry):
             # DisconnectHandler(),
             ReceiverReadyHandler(event_publisher=self._event_publisher),
             SenderDisconnectedHandler(event_publisher=self._event_publisher),
-            SenderPairRequestHandler(),
+            SenderPairRequestHandler(event_publisher=self._event_publisher),
             RequestProcessingHandler(),
             WorkerActiveHandler(event_publisher=self._event_publisher),
             WorkerResultHandler(),
@@ -97,11 +97,13 @@ class MainEventRegistry(BaseEventRegistry):
         Tạo wrapper function để execute handler với managers injected có điều kiện.
 
         Dependency injection có điều kiện:
-        - ReceiverManager: DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST
-        - SenderManager: DISCONNECT, SENDER_PAIR_REQUEST
-        - PairManager: SENDER_PAIR_REQUEST
-        - WorkerManager: REQUEST_PROCESSING, WORKER_ACTIVE, WORKER_RESULT
+        - ReceiverManager: DISCONNECT, RECEIVER_READY
+        - SenderManager: DISCONNECT
+        - WorkerManager: REQUEST_PROCESSING, WORKER_RESULT
         - JobManager: REQUEST_PROCESSING, WORKER_RESULT
+
+        Lưu ý: WORKER_ACTIVE và SENDER_PAIR_REQUEST không cần manager
+        vì đã chuyển logic sang Kafka consumer.
 
         Args:
             handler: Handler instance
@@ -111,11 +113,11 @@ class MainEventRegistry(BaseEventRegistry):
         """
 
         # Xác định các events cần inject managers
-        # Lưu ý: WORKER_ACTIVE không cần manager vì đã chuyển logic sang Kafka consumer
+        # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST không cần manager
+        # vì đã chuyển logic sang Kafka consumer
         events_need_manager = {
             MainEvents.DISCONNECT,
             MainEvents.RECEIVER_READY,
-            MainEvents.SENDER_PAIR_REQUEST,
             MainEvents.REQUEST_PROCESSING,
             MainEvents.WORKER_RESULT,
         }
@@ -161,28 +163,21 @@ class MainEventRegistry(BaseEventRegistry):
 
                     # Inject managers có điều kiện dựa trên event type
                     # Chỉ inject manager nào cần thiết cho event cụ thể
+                    # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST không cần manager
+                    # vì đã chuyển logic sang Kafka consumer
 
-                    # ReceiverManager: cần cho DISCONNECT, RECEIVER_READY, SENDER_PAIR_REQUEST
+                    # ReceiverManager: cần cho DISCONNECT, RECEIVER_READY
                     if handler.event in {
                         MainEvents.DISCONNECT,
                         MainEvents.RECEIVER_READY,
-                        MainEvents.SENDER_PAIR_REQUEST,
                     }:
                         data["__receiver_manager__"] = self._receiver_manager
 
-                    # SenderManager: cần cho DISCONNECT, SENDER_PAIR_REQUEST
-                    if handler.event in {
-                        MainEvents.DISCONNECT,
-                        MainEvents.SENDER_PAIR_REQUEST,
-                    }:
+                    # SenderManager: cần cho DISCONNECT
+                    if handler.event == MainEvents.DISCONNECT:
                         data["__sender_manager__"] = self._sender_manager
 
-                    # PairManager: chỉ cần cho SENDER_PAIR_REQUEST
-                    if handler.event == MainEvents.SENDER_PAIR_REQUEST:
-                        data["__pair_manager__"] = self._pair_manager
-
                     # WorkerManager: cần cho REQUEST_PROCESSING, WORKER_RESULT
-                    # Lưu ý: WORKER_ACTIVE không cần vì đã chuyển logic sang Kafka consumer
                     if handler.event in {
                         MainEvents.REQUEST_PROCESSING,
                         MainEvents.WORKER_RESULT,

@@ -13,13 +13,13 @@ class EmitTopic(BaseTopics):
     Kế thừa từ BaseTopics và thêm các topics riêng cho emit events.
 
     Attributes:
-        PAIR_RESULT: Topic cho kết quả pairing
-        PAIR_RESULT_DLQ: DLQ topic cho pair result failures
-        SENDER_DISCONNECTED: Topic cho thông báo sender disconnect
-        SENDER_DISCONNECTED_DLQ: DLQ topic cho sender disconnect failures
+        PAIR_REQUEST_SUCCESS: Topic cho kết quả pairing thành công
+        PAIR_REQUEST_SUCCESS_DLQ: DLQ topic cho pair success failures
+        PAIR_REQUEST_FAILED: Topic cho kết quả pairing thất bại
+        PAIR_REQUEST_FAILED_DLQ: DLQ topic cho pair failed failures
     """
 
-    PAIR_RESULT = KafkaTopic("emit.pair-result")
-    PAIR_RESULT_DLQ = KafkaTopic("emit.pair-result.dlq")
-    SENDER_DISCONNECTED = KafkaTopic("emit.sender-disconnected")
-    SENDER_DISCONNECTED_DLQ = KafkaTopic("emit.sender-disconnected.dlq")
+    PAIR_REQUEST_SUCCESS = KafkaTopic("emit.pair-request-success")
+    PAIR_REQUEST_SUCCESS_DLQ = KafkaTopic("emit.pair-request-success.dlq")
+    PAIR_REQUEST_FAILED = KafkaTopic("emit.pair-request-failed")
+    PAIR_REQUEST_FAILED_DLQ = KafkaTopic("emit.pair-request-failed.dlq")

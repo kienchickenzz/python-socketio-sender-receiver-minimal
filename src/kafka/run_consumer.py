@@ -4,13 +4,15 @@ Kafka Consumer entry point
 Khởi tạo Kafka consumers cho server events, bao gồm:
 - Khởi tạo các state managers (singleton)
 - Khởi tạo Kafka infrastructure (config, factories, DLQ publisher)
-- Inject managers vào ServerRegistry
+- Khởi tạo Kafka emit publisher (để publish kết quả về SocketIO server)
+- Inject managers và emit_publisher vào ServerRegistry
 - Start consumers (blocking)
 """
 from src.kafka.consumer.shared.infrastructure.KafkaConfig import KafkaConfig
 from src.kafka.consumer.shared.infrastructure.KafkaConsumerFactory import KafkaConsumerFactory
 from src.kafka.consumer.shared.infrastructure.KafkaProducerFactory import KafkaProducerFactory
 from src.kafka.consumer.shared.infrastructure.DeadLetterPublisher import DeadLetterPublisher
+from src.kafka.consumer.shared.kafka_publisher.base.KafkaEmitPublisher import KafkaEmitPublisher
 from src.kafka.consumer.server.ServerRegistry import ServerRegistry
 from src.kafka.shared.base.JsonSerializer import JsonSerializer
 
@@ -54,12 +56,16 @@ def main():
     serializer = JsonSerializer()
     dlq_publisher = DeadLetterPublisher(producer, serializer)
 
+    # Emit publisher (để publish kết quả về SocketIO server qua emit topics)
+    emit_publisher = KafkaEmitPublisher(producer, serializer)
+
     print("[run_consumer] Kafka infrastructure initialized")
 
-    # Create Registry with Injected Managers
+    # Create Registry with Injected Dependencies
     registry = ServerRegistry(
         consumer_factory=consumer_factory,
         dlq_publisher=dlq_publisher,
+        emit_publisher=emit_publisher,
         receiver_manager=receiver_manager,
         sender_manager=sender_manager,
         pair_manager=pair_manager,

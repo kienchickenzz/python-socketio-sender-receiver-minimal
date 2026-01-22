@@ -1,5 +1,5 @@
 """
-BaseEmitRegistry - Registry pattern cho Kafka emit consumer handlers
+BaseEmitRegistry - Registry pattern cho Kafka emit consumer handlers.
 
 Trách nhiệm:
 - Quản lý danh sách emit handlers
@@ -7,9 +7,11 @@ Trách nhiệm:
 - Mỗi handler chạy 2 threads: main consumer và DLQ consumer
 - Truyền AsyncServer cho handlers để emit SocketIO events
 - Graceful shutdown tất cả threads
+
+Registry này được thiết kế để nhúng vào SocketIO server (embedded mode),
+không chạy standalone vì cần sio instance và event_loop từ server.
 """
 import asyncio
-import signal
 import threading
 from abc import ABC, abstractmethod
 
@@ -37,14 +39,13 @@ class BaseEmitRegistry(ABC):
     Subclass phải implement _create_handlers() để định nghĩa handlers.
 
     Example:
-        config = KafkaConfig(bootstrap_servers="localhost:9092")
-        consumer_factory = KafkaConsumerFactory(config)
-        dlq_publisher = DeadLetterPublisher(producer, serializer)
-        sio = AsyncServer(async_mode="asgi")
-        event_loop = asyncio.get_event_loop()
-
-        registry = MainEmitRegistry(consumer_factory, dlq_publisher, sio, event_loop)
-        registry.register_all()
+        # Trong FastAPI lifespan
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            emit_registry = MainEmitRegistry(...)
+            emit_registry.start()
+            yield
+            emit_registry.stop()
     """
 
     # Poll timeout cho main consumer (ms)
@@ -83,9 +84,6 @@ class BaseEmitRegistry(ABC):
         for handler in handlers:
             self._handlers[handler.topic.value] = handler
 
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
-
     @abstractmethod
     def _create_handlers(self) -> list[IEmitHandler]:
         """
@@ -98,10 +96,6 @@ class BaseEmitRegistry(ABC):
             list[IEmitHandler]: Danh sách handler instances
         """
         pass
-
-    def _signal_handler(self, signum, frame) -> None:
-        """Handle shutdown signals."""
-        self._running = False
 
     def _run_main_consumer(
         self,
@@ -128,13 +122,10 @@ class BaseEmitRegistry(ABC):
                     for msg in messages:
                         try:
                             # Run async handler from synchronous thread context
-                            # Sử dụng run_coroutine_threadsafe để schedule coroutine
-                            # trên event loop đang chạy trong main thread
                             future = asyncio.run_coroutine_threadsafe(
                                 handler.handle(self._sio, msg.value),
                                 self._event_loop,
                             )
-                            # Wait for the coroutine to complete
                             future.result()
                         except Exception as e:
                             self._send_to_dlq(handler, msg.value, e)
@@ -201,7 +192,6 @@ class BaseEmitRegistry(ABC):
             error_info=error_info,
         )
 
-        # Handler phải implement IDLQHandler
         if isinstance(handler, IDLQHandler):
             self._dlq_publisher.publish(handler.dlq_topic, dlq_message)
 
@@ -224,7 +214,7 @@ class BaseEmitRegistry(ABC):
         )
         self._threads.append(main_thread)
 
-        # Thread 2: DLQ consumer (handler phải implement IDLQHandler)
+        # Thread 2: DLQ consumer
         if isinstance(handler, IDLQHandler):
             dlq_consumer = self._factory.create_dlq(handler)
             self._consumers.append(dlq_consumer)
@@ -237,31 +227,33 @@ class BaseEmitRegistry(ABC):
             )
             self._threads.append(dlq_thread)
 
-    def register_all(self) -> None:
+    def start(self) -> None:
         """
-        Start tất cả handlers trong các threads riêng biệt.
+        Start tất cả emit consumer threads.
 
-        Mỗi handler sẽ có 2 threads: main consumer và DLQ consumer.
-        Method này sẽ block cho đến khi nhận signal shutdown.
+        Non-blocking - threads chạy background, method return ngay.
+        Gọi method này trong FastAPI startup event.
         """
         self._running = True
 
         for handler in self._handlers.values():
             self._register_handler(handler)
 
-        # Start all threads
         for thread in self._threads:
             thread.start()
 
-        # Block main thread, chờ shutdown signal
-        try:
-            while self._running:
-                threading.Event().wait(1)
-        finally:
-            self._shutdown()
+        print(f"[BaseEmitRegistry] Started {len(self._threads)} consumer threads")
 
-    def _shutdown(self) -> None:
-        """Graceful shutdown tất cả threads."""
+    def stop(self) -> None:
+        """
+        Graceful shutdown tất cả threads.
+
+        Gọi method này trong FastAPI shutdown event.
+        """
+        print("[BaseEmitRegistry] Stopping...")
         self._running = False
+
         for thread in self._threads:
             thread.join(timeout=5)
+
+        print("[BaseEmitRegistry] Stopped")

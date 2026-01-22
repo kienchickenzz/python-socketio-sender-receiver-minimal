@@ -39,4 +39,4 @@ class BaseTopics:
             COMPLETED = KafkaTopic("prediction.completed")
     """
 
-    DLQ = KafkaTopic("dlq.events")
+    pass
