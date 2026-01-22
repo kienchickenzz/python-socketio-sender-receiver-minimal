@@ -30,16 +30,18 @@ class WorkerJobHandler(IEventHandler):
         Xử lý khi nhận worker-job từ server.
 
         Args:
-            sio: SocketIO AsyncClient instance
-            session_id: Session ID hiện tại của worker
+            sio (AsyncClient): SocketIO AsyncClient instance
+            session_id (str | None): Session ID hiện tại của worker
             data: Data từ server chứa:
+                - job_id: ID của job được tạo bởi JobManager
                 - pair_id: ID của cặp sender-receiver
                 - sender_id: ID của sender
                 - receiver_id: ID của receiver
+                - worker_id: ID của worker được chọn
                 - data: Dãy số cần xử lý (list of int)
 
         Returns:
-            None (không update session_id)
+            None: Không update session_id
         """
         if not data:
             print(f"[Worker] worker-job received but no data")
@@ -54,6 +56,7 @@ class WorkerJobHandler(IEventHandler):
 
         print(f"\n{'='*60}")
         print(f"[Worker] 📋 RECEIVED JOB")
+        print(f"[Worker] Job ID: {dto.job_id}")
         print(f"[Worker] Pair ID: {dto.pair_id}")
         print(f"[Worker] Sender ID: {dto.sender_id}")
         print(f"[Worker] Receiver ID: {dto.receiver_id}")
@@ -70,6 +73,7 @@ class WorkerJobHandler(IEventHandler):
 
         # Tạo DTO và serialize để emit
         result_dto = WorkerResultDto(
+            job_id=dto.job_id,
             pair_id=dto.pair_id,
             sender_id=dto.sender_id,
             receiver_id=dto.receiver_id,

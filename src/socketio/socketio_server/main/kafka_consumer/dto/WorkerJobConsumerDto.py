@@ -16,6 +16,7 @@ class WorkerJobConsumerDto(ConsumerEmitDto):
     DTO để parse message worker job từ Kafka.
 
     Fields:
+        job_id: ID của job được tạo bởi JobManager
         target_sid: Socket ID của worker cần emit tới (= worker_id)
         pair_id: ID của cặp sender-receiver
         sender_id: ID của sender
@@ -29,6 +30,7 @@ class WorkerJobConsumerDto(ConsumerEmitDto):
             await sio.emit("worker-job", {...}, to=dto.target_sid)
     """
 
+    job_id: str
     target_sid: str
     pair_id: str
     sender_id: str

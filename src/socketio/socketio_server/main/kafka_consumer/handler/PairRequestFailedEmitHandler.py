@@ -15,6 +15,7 @@ from src.socketio.socketio_server.shared.kafka_consumer.interface.IEmitHandler i
 from src.socketio.socketio_server.shared.kafka_consumer.interface.IDLQHandler import (
     IDLQHandler,
 )
+from src.socketio.shared.dto.pairing import PairRequestFailedDto
 from src.socketio.socketio_server.shared.kafka_consumer.enum.KafkaTopic import KafkaTopic
 from src.socketio.socketio_server.shared.kafka_consumer.enum.ConsumerGroup import (
     ConsumerGroup,
@@ -79,11 +80,12 @@ class PairRequestFailedEmitHandler(IEmitHandler, IDLQHandler):
         print(f"{'='*60}\n")
 
         # 2. Tạo payload cho SocketIO emit
-        payload = {
-            "senderId": dto.sender_id,
-            "reason": dto.reason,
-        }
-
+        payloadDto = PairRequestFailedDto(
+            sender_id=dto.sender_id,
+            reason=dto.reason,
+        )
+        payload = payloadDto.model_dump(by_alias=True)
+        
         # 3. Emit SocketIO event về client
         await sio.emit(
             MainEvents.PAIR_REQUEST_FAILED.value,

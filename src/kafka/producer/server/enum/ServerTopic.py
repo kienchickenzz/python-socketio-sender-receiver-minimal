@@ -18,6 +18,7 @@ class ServerTopic(BaseTopics):
         WORKER_ACTIVE: Topic cho sự kiện worker active
         SENDER_PAIR_REQUEST: Topic cho sự kiện sender yêu cầu pair
         REQUEST_PROCESSING: Topic cho sự kiện sender gửi request xử lý
+        WORKER_RESULT: Topic cho sự kiện worker trả kết quả
     """
 
     SENDER_DISCONNECTED = KafkaTopic("server.sender-disconnected")
@@ -25,3 +26,4 @@ class ServerTopic(BaseTopics):
     WORKER_ACTIVE = KafkaTopic("server.worker-active")
     SENDER_PAIR_REQUEST = KafkaTopic("server.sender-pair-request")
     REQUEST_PROCESSING = KafkaTopic("server.request-processing")
+    WORKER_RESULT = KafkaTopic("server.worker-result")

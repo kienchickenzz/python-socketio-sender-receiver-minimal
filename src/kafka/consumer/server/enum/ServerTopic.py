@@ -23,6 +23,8 @@ class ServerTopic(BaseTopics):
         SENDER_PAIR_REQUEST_DLQ: DLQ topic cho sender pair request failures
         REQUEST_PROCESSING: Topic cho sự kiện sender gửi request xử lý
         REQUEST_PROCESSING_DLQ: DLQ topic cho request processing failures
+        WORKER_RESULT: Topic cho sự kiện worker trả kết quả
+        WORKER_RESULT_DLQ: DLQ topic cho worker result failures
     """
 
     SENDER_DISCONNECTED = KafkaTopic("server.sender-disconnected")
@@ -35,3 +37,5 @@ class ServerTopic(BaseTopics):
     SENDER_PAIR_REQUEST_DLQ = KafkaTopic("server.sender-pair-request.dlq")
     REQUEST_PROCESSING = KafkaTopic("server.request-processing")
     REQUEST_PROCESSING_DLQ = KafkaTopic("server.request-processing.dlq")
+    WORKER_RESULT = KafkaTopic("server.worker-result")
+    WORKER_RESULT_DLQ = KafkaTopic("server.worker-result.dlq")

@@ -18,6 +18,7 @@ class WorkerJobEmitDto(KafkaEventDto):
     Chứa thông tin để SocketIO server emit job tới worker để xử lý.
 
     Fields:
+        job_id: ID của job được tạo bởi JobManager
         target_sid: Socket ID của worker cần emit tới (= worker_id)
         pair_id: ID của cặp sender-receiver
         sender_id: ID của sender
@@ -27,6 +28,7 @@ class WorkerJobEmitDto(KafkaEventDto):
 
     Example:
         dto = WorkerJobEmitDto(
+            job_id="job-xyz",
             target_sid="worker-123",
             pair_id="pair-abc",
             sender_id="sender-456",
@@ -37,6 +39,7 @@ class WorkerJobEmitDto(KafkaEventDto):
         emit_publisher.publish(dto)
     """
 
+    job_id: str
     target_sid: str
     pair_id: str
     sender_id: str

@@ -23,6 +23,8 @@ class ServerGroup(BaseGroups):
         SENDER_PAIR_REQUEST_DLQ: Group cho xử lý DLQ của sender pair request
         REQUEST_PROCESSING: Group cho xử lý request processing
         REQUEST_PROCESSING_DLQ: Group cho xử lý DLQ của request processing
+        WORKER_RESULT: Group cho xử lý worker result
+        WORKER_RESULT_DLQ: Group cho xử lý DLQ của worker result
     """
 
     SENDER_DISCONNECT = ConsumerGroup("server-sender-disconnect-group")
@@ -35,3 +37,5 @@ class ServerGroup(BaseGroups):
     SENDER_PAIR_REQUEST_DLQ = ConsumerGroup("server-sender-pair-request-dlq-group")
     REQUEST_PROCESSING = ConsumerGroup("server-request-processing-group")
     REQUEST_PROCESSING_DLQ = ConsumerGroup("server-request-processing-dlq-group")
+    WORKER_RESULT = ConsumerGroup("server-worker-result-group")
+    WORKER_RESULT_DLQ = ConsumerGroup("server-worker-result-dlq-group")

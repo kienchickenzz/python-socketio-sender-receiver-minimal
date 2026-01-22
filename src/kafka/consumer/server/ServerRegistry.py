@@ -7,6 +7,7 @@ ServerRegistry - Registry cho Server domain Kafka consumers
 - WorkerActiveConsumerHandler: Xử lý khi worker báo active
 - SenderPairRequestConsumerHandler: Xử lý khi sender yêu cầu pair
 - RequestProcessingConsumerHandler: Xử lý khi sender gửi request xử lý
+- WorkerResultConsumerHandler: Xử lý khi worker trả kết quả
 
 Nhận KafkaEmitPublisher để các handlers có thể publish emit events
 cho SocketIO server emit về client.
@@ -31,6 +32,9 @@ from src.kafka.consumer.server.handler.SenderPairRequestConsumerHandler import (
 )
 from src.kafka.consumer.server.handler.RequestProcessingConsumerHandler import (
     RequestProcessingConsumerHandler,
+)
+from src.kafka.consumer.server.handler.WorkerResultConsumerHandler import (
+    WorkerResultConsumerHandler,
 )
 
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
@@ -57,6 +61,7 @@ class ServerRegistry(BaseEventRegistry):
         - WorkerActiveConsumerHandler: Thêm/update worker khi active
         - SenderPairRequestConsumerHandler: Xử lý pairing sender với receiver
         - RequestProcessingConsumerHandler: Dispatch job cho worker xử lý
+        - WorkerResultConsumerHandler: Xử lý kết quả từ worker, FIFO ordering
 
     Example:
         # Khởi tạo ở application root
@@ -142,6 +147,11 @@ class ServerRegistry(BaseEventRegistry):
                 pair_manager=self._pair_manager,
             ),
             RequestProcessingConsumerHandler(
+                emit_publisher=self._emit_publisher,
+                worker_manager=self._worker_manager,
+                job_manager=self._job_manager,
+            ),
+            WorkerResultConsumerHandler(
                 emit_publisher=self._emit_publisher,
                 worker_manager=self._worker_manager,
                 job_manager=self._job_manager,

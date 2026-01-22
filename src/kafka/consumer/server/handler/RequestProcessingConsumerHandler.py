@@ -121,8 +121,19 @@ class RequestProcessingConsumerHandler(IEventHandler, IDLQHandler):
         print(f"[RequestProcessingConsumer] Selected worker: {worker_id}")
         print(f"[RequestProcessingConsumer] Total ACTIVE workers: {len(active_workers)}")
 
-        # 4. Publish emit event (worker-job) tới worker
+        # 4. Thêm job vào JobManager để tracking (tạo job_id trước)
+        job_id = self._job_manager.add_job(
+            sender_id=dto.sender_id,
+            worker_id=worker_id,
+            pair_id=dto.pair_id,
+            input_data=dto.data,
+        )
+
+        print(f"[RequestProcessingConsumer] Created job tracking: {job_id}")
+
+        # 5. Publish emit event (worker-job) tới worker với job_id
         worker_job_emit_dto = WorkerJobEmitDto(
+            job_id=job_id,
             target_sid=worker_id,
             pair_id=dto.pair_id,
             sender_id=dto.sender_id,
@@ -133,16 +144,6 @@ class RequestProcessingConsumerHandler(IEventHandler, IDLQHandler):
         self._emit_publisher.publish(worker_job_emit_dto)
 
         print(f"[RequestProcessingConsumer] Published worker-job emit event to {worker_id}")
-
-        # 5. Thêm job vào JobManager để tracking
-        job_id = self._job_manager.add_job(
-            sender_id=dto.sender_id,
-            worker_id=worker_id,
-            pair_id=dto.pair_id,
-            input_data=dto.data,
-        )
-
-        print(f"[RequestProcessingConsumer] Created job tracking: {job_id}")
         print(
             f"[RequestProcessingConsumer] Sender {dto.sender_id} queue size: "
             f"{self._job_manager.count_sender_jobs(dto.sender_id)}"

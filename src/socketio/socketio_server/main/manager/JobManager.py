@@ -156,6 +156,28 @@ class JobManager:
             return self._sender_queues[sender_id].copy()
         return []
 
+    def get_job_from_sender(self, sender_id: str, job_id: str) -> Optional[JobData]:
+        """
+        Tìm job trong queue của một sender cụ thể.
+
+        Khoanh vùng tìm kiếm trong queue của sender trước,
+        sau đó tìm job theo job_id trong queue đó.
+
+        Args:
+            sender_id: ID của sender
+            job_id: ID của job cần tìm
+
+        Returns:
+            JobData nếu tìm thấy, None nếu không tồn tại
+        """
+        if sender_id not in self._sender_queues:
+            return None
+
+        for job in self._sender_queues[sender_id]:
+            if job.id == job_id:
+                return job
+        return None
+
     def get_first_job(self, sender_id: str) -> Optional[JobData]:
         """
         Lấy job đầu tiên trong queue của sender (không remove).

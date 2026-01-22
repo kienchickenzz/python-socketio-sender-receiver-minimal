@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from socketio import AsyncServer
 
+from src.socketio.shared.dto.pairing import PairRequestSuccessDto
 from src.socketio.socketio_server.shared.kafka_consumer.interface.IEmitHandler import (
     IEmitHandler,
 )
@@ -79,11 +80,12 @@ class PairRequestSuccessEmitHandler(IEmitHandler, IDLQHandler):
         print(f"{'='*60}\n")
 
         # 2. Tạo payload cho SocketIO emit
-        payload = {
-            "pairId": dto.pair_id,
-            "senderId": dto.sender_id,
-            "receiverId": dto.receiver_id,
-        }
+        payloadDto = PairRequestSuccessDto(
+            pair_id=dto.pair_id,
+            sender_id=dto.sender_id,
+            receiver_id=dto.receiver_id,
+        )
+        payload = payloadDto.model_dump(by_alias=True)
 
         # 3. Emit SocketIO event về client
         await sio.emit(

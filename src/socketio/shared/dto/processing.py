@@ -36,12 +36,14 @@ class WorkerJobDto(DtoBase):
     Server phân công job cho worker xử lý.
 
     Fields:
+        job_id: ID của job được tạo bởi JobManager
         pair_id: ID của cặp sender-receiver
         sender_id: ID của sender
         receiver_id: ID của receiver
         worker_id: ID của worker được chọn
         data: Dữ liệu cần xử lý (list of numbers)
     """
+    job_id: str
     pair_id: str
     sender_id: str
     receiver_id: str
@@ -56,6 +58,7 @@ class WorkerResultDto(DtoBase):
     Worker trả kết quả đã xử lý về server.
 
     Fields:
+        job_id: ID của job được tạo bởi JobManager
         pair_id: ID của cặp sender-receiver
         sender_id: ID của sender
         receiver_id: ID của receiver
@@ -63,6 +66,7 @@ class WorkerResultDto(DtoBase):
         original_data: Dữ liệu gốc
         result: Kết quả đã xử lý (sorted data)
     """
+    job_id: str
     pair_id: str
     sender_id: str
     receiver_id: str
@@ -84,6 +88,7 @@ class ProcessingResultDto(DtoBase):
         original_data: Dữ liệu gốc
         result: Kết quả đã xử lý (sorted data)
     """
+    job_id: str
     pair_id: str
     sender_id: str
     worker_id: str

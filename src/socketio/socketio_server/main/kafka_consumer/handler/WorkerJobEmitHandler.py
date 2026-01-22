@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from socketio import AsyncServer
 
+from src.socketio.shared.dto.processing import WorkerJobDto
 from src.socketio.socketio_server.shared.kafka_consumer.interface.IEmitHandler import (
     IEmitHandler,
 )
@@ -57,6 +58,7 @@ class WorkerJobEmitHandler(IEmitHandler, IDLQHandler):
         Args:
             sio (AsyncServer): SocketIO AsyncServer instance để emit events
             data (dict): Message data từ Kafka chứa:
+                - jobId: ID của job được tạo bởi JobManager
                 - targetSid: Socket ID của worker cần emit tới
                 - pairId: ID của cặp sender-receiver
                 - senderId: ID của sender
@@ -76,6 +78,7 @@ class WorkerJobEmitHandler(IEmitHandler, IDLQHandler):
 
         print(f"\n{'='*60}")
         print(f"[WorkerJobEmitHandler] EMITTING WORKER JOB")
+        print(f"[WorkerJobEmitHandler] Job ID: {dto.job_id}")
         print(f"[WorkerJobEmitHandler] Target SID: {dto.target_sid}")
         print(f"[WorkerJobEmitHandler] Worker ID: {dto.worker_id}")
         print(f"[WorkerJobEmitHandler] Pair ID: {dto.pair_id}")
@@ -83,13 +86,15 @@ class WorkerJobEmitHandler(IEmitHandler, IDLQHandler):
         print(f"{'='*60}\n")
 
         # 2. Tạo payload cho SocketIO emit
-        payload = {
-            "pairId": dto.pair_id,
-            "senderId": dto.sender_id,
-            "receiverId": dto.receiver_id,
-            "workerId": dto.worker_id,
-            "data": dto.data,
-        }
+        payloadDto = WorkerJobDto(
+            job_id=dto.job_id,
+            pair_id=dto.pair_id,
+            sender_id=dto.sender_id,
+            receiver_id=dto.receiver_id,
+            worker_id=dto.worker_id,
+            data=dto.data,
+        )
+        payload = payloadDto.model_dump(by_alias=True)
 
         # 3. Emit SocketIO event về worker
         await sio.emit(

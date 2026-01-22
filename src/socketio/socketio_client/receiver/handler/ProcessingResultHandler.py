@@ -53,6 +53,7 @@ class ProcessingResultHandler(IEventHandler):
 
         print(f"\n{'='*60}")
         print(f"[Receiver] 🎉 PROCESSING RESULT RECEIVED")
+        print(f"[Receiver] Job ID: {dto.job_id}")
         print(f"[Receiver] Pair ID: {dto.pair_id}")
         print(f"[Receiver] Sender ID: {dto.sender_id}")
         print(f"[Receiver] Worker ID: {dto.worker_id}")

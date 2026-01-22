@@ -89,7 +89,7 @@ class MainEventRegistry(BaseEventRegistry):
             SenderPairRequestHandler(event_publisher=self._event_publisher),
             RequestProcessingHandler(event_publisher=self._event_publisher),
             WorkerActiveHandler(event_publisher=self._event_publisher),
-            WorkerResultHandler(),
+            WorkerResultHandler(event_publisher=self._event_publisher),
         ]
 
     def _create_wrapper(self, handler: IEventHandler):
@@ -99,11 +99,9 @@ class MainEventRegistry(BaseEventRegistry):
         Dependency injection có điều kiện:
         - ReceiverManager: DISCONNECT, RECEIVER_READY
         - SenderManager: DISCONNECT
-        - WorkerManager: WORKER_RESULT
-        - JobManager: WORKER_RESULT
 
-        Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING không cần manager
-        vì đã chuyển logic sang Kafka consumer.
+        Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING, WORKER_RESULT
+        không cần manager vì đã chuyển logic sang Kafka consumer.
 
         Args:
             handler: Handler instance
@@ -111,19 +109,6 @@ class MainEventRegistry(BaseEventRegistry):
         Returns:
             Async wrapper function
         """
-
-        # Xác định các events cần inject managers
-        # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING không cần manager
-        # vì đã chuyển logic sang Kafka consumer
-        events_need_manager = {
-            MainEvents.DISCONNECT,
-            MainEvents.RECEIVER_READY,
-            MainEvents.WORKER_RESULT,
-        }
-
-        # Check xem handler này có cần managers không
-        needs_manager = handler.event in events_need_manager
-
 
         # Wrapper function PHẢI nhận đúng signature: async def wrapper(sid: str, data=None)
         # Lý do:
@@ -143,46 +128,20 @@ class MainEventRegistry(BaseEventRegistry):
                 data: Event data (optional, có thể là dict, string, hoặc None)
             """
             try:
-                # Chỉ inject managers cho handlers cần thiết
-                if needs_manager:
-                    # PHẢI kiểm tra type của data trước khi thực hiện dict assignment
-                    # Lý do:
-                    # - data có thể KHÔNG phải là dict
-                    # - Ví dụ: với DISCONNECT event, data là string (disconnect reason)
-                    # - Nếu không check type mà cố gắng: data["key"] = value
-                    #   sẽ bị lỗi: TypeError: 'str' object does not support item assignment
+                # PHẢI kiểm tra type của data trước khi thực hiện dict assignment
+                # Lý do:
+                # - data có thể KHÔNG phải là dict
+                # - Ví dụ: với DISCONNECT event, data là string (disconnect reason)
+                # - Nếu không check type mà cố gắng: data["key"] = value
+                #   sẽ bị lỗi: TypeError: 'str' object does not support item assignment
 
-                    if data is None:
-                        # Data là None -> tạo dict mới
-                        data = {}
-                    elif not isinstance(data, dict):
-                        # Data không phải dict (ví dụ: string từ disconnect)
-                        # Wrap nó vào dict để giữ lại data gốc
-                        data = {"_original_data": data}
-
-                    # Inject managers có điều kiện dựa trên event type
-                    # Chỉ inject manager nào cần thiết cho event cụ thể
-                    # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING
-                    # không cần manager vì đã chuyển logic sang Kafka consumer
-
-                    # ReceiverManager: cần cho DISCONNECT, RECEIVER_READY
-                    if handler.event in {
-                        MainEvents.DISCONNECT,
-                        MainEvents.RECEIVER_READY,
-                    }:
-                        data["__receiver_manager__"] = self._receiver_manager
-
-                    # SenderManager: cần cho DISCONNECT
-                    if handler.event == MainEvents.DISCONNECT:
-                        data["__sender_manager__"] = self._sender_manager
-
-                    # WorkerManager: cần cho WORKER_RESULT
-                    if handler.event == MainEvents.WORKER_RESULT:
-                        data["__worker_manager__"] = self._worker_manager
-
-                    # JobManager: cần cho WORKER_RESULT
-                    if handler.event == MainEvents.WORKER_RESULT:
-                        data["__job_manager__"] = self._job_manager
+                if data is None:
+                    # Data là None -> tạo dict mới
+                    data = {}
+                elif not isinstance(data, dict):
+                    # Data không phải dict (ví dụ: string từ disconnect)
+                    # Wrap nó vào dict để giữ lại data gốc
+                    data = {"_original_data": data}
 
                 # Execute handler với đầy đủ parameters: (sio, sid, data)
                 await handler.handle(self._sio, sid, data)
