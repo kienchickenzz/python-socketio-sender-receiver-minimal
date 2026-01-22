@@ -10,7 +10,6 @@ from src.socketio.socketio_server.shared.base.BaseEventRegistry import BaseEvent
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 
 from src.socketio.socketio_server.main.handler.ConnectHandler import ConnectHandler
-# from src.socketio.socketio_server.main.handler.DisconnectHandler import DisconnectHandler
 from src.socketio.socketio_server.main.handler.ReceiverReadyHandler import ReceiverReadyHandler
 from src.socketio.socketio_server.main.handler.SenderPairRequestHandler import SenderPairRequestHandler
 from src.socketio.socketio_server.main.handler.RequestProcessingHandler import RequestProcessingHandler
@@ -23,9 +22,7 @@ from src.socketio.socketio_server.main.manager.PairManager import PairManager
 from src.socketio.socketio_server.main.manager.WorkerManager import WorkerManager
 from src.socketio.socketio_server.main.manager.JobManager import JobManager
 
-from src.socketio.socketio_server.main.enum.MainEvent import MainEvents
-
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
 
 
 class MainEventRegistry(BaseEventRegistry):

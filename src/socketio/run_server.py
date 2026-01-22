@@ -22,11 +22,11 @@ from src.socketio.socketio_server.main.manager.PairManager import PairManager
 from src.socketio.socketio_server.main.manager.WorkerManager import WorkerManager
 from src.socketio.socketio_server.main.manager.JobManager import JobManager
 
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
+from src.socketio.socketio_server.shared.kafka_producer.base.JsonSerializer import JsonSerializer
 
-from src.kafka.producer.infrastructure.KafkaConfig import KafkaConfig
-from src.kafka.producer.infrastructure.KafkaProducerFactory import KafkaProducerFactory
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.shared.kafka_producer.infrastructure.KafkaConfig import KafkaConfig
+from src.socketio.socketio_server.shared.kafka_producer.infrastructure.KafkaProducerFactory import KafkaProducerFactory
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
 
 from src.socketio.socketio_server.shared.kafka_consumer.infrastructure.KafkaConfig import (
     KafkaConfig as EmitKafkaConfig,

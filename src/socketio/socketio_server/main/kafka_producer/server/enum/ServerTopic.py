@@ -3,7 +3,7 @@ ServerTopic - Kafka topics cho Server Producer
 
 Định nghĩa các topics mà server sẽ publish events vào.
 """
-from src.kafka.producer.shared.enum.KafkaTopic import KafkaTopic, BaseTopics
+from src.socketio.socketio_server.shared.kafka_producer.enum.KafkaTopic import KafkaTopic, BaseTopics
 
 
 class ServerTopic(BaseTopics):

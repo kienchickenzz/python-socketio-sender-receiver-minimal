@@ -9,7 +9,7 @@ from abc import abstractmethod
 from pydantic import BaseModel, ConfigDict
 from humps import camelize
 
-from src.kafka.producer.shared.enum.KafkaTopic import KafkaTopic
+from src.socketio.socketio_server.shared.kafka_producer.enum.KafkaTopic import KafkaTopic
 
 
 class KafkaEventDto(BaseModel):

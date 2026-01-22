@@ -7,8 +7,8 @@ Logic xử lý cleanup được chuyển sang Kafka consumer.
 from datetime import datetime
 from socketio import AsyncServer
 
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
-from src.kafka.producer.server.dto.SenderDisconnectedEventDto import SenderDisconnectedEventDto
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.main.kafka_producer.server.dto.SenderDisconnectedEventDto import SenderDisconnectedEventDto
 
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio.socketio_server.main.enum.MainEvent import MainEvents

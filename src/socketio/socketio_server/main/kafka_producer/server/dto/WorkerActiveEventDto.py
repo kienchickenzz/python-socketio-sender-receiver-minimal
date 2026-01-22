@@ -4,9 +4,10 @@ WorkerActiveEventDto - DTO cho sự kiện worker active publish lên Kafka.
 Được sử dụng khi worker báo active sau khi nhận session ID,
 SocketIO handler sẽ tạo DTO này và publish lên Kafka.
 """
-from src.kafka.producer.shared.dto.KafkaEventDto import KafkaEventDto
-from src.kafka.producer.shared.enum.KafkaTopic import KafkaTopic
-from src.kafka.producer.server.enum.ServerTopic import ServerTopic
+from src.socketio.socketio_server.shared.kafka_producer.dto.KafkaEventDto import KafkaEventDto
+from src.socketio.socketio_server.shared.kafka_producer.enum.KafkaTopic import KafkaTopic
+
+from src.socketio.socketio_server.main.kafka_producer.server.enum.ServerTopic import ServerTopic
 
 
 class WorkerActiveEventDto(KafkaEventDto):

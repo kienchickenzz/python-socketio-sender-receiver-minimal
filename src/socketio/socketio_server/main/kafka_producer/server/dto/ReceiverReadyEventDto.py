@@ -4,9 +4,10 @@ ReceiverReadyEventDto - DTO cho sự kiện receiver ready publish lên Kafka.
 Được sử dụng khi receiver báo sẵn sàng nhận pairing,
 SocketIO handler sẽ tạo DTO này và publish lên Kafka.
 """
-from src.kafka.producer.shared.dto.KafkaEventDto import KafkaEventDto
-from src.kafka.producer.shared.enum.KafkaTopic import KafkaTopic
-from src.kafka.producer.server.enum.ServerTopic import ServerTopic
+from src.socketio.socketio_server.shared.kafka_producer.dto.KafkaEventDto import KafkaEventDto
+from src.socketio.socketio_server.shared.kafka_producer.enum.KafkaTopic import KafkaTopic
+
+from src.socketio.socketio_server.main.kafka_producer.server.enum.ServerTopic import ServerTopic
 
 
 class ReceiverReadyEventDto(KafkaEventDto):

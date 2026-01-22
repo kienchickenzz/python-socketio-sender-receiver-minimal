@@ -7,7 +7,7 @@ Trách nhiệm:
 """
 from kafka import KafkaProducer
 
-from src.kafka.producer.infrastructure.KafkaConfig import KafkaConfig
+from src.socketio.socketio_server.shared.kafka_producer.infrastructure.KafkaConfig import KafkaConfig
 
 
 class KafkaProducerFactory:

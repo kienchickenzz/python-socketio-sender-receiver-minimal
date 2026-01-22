@@ -7,8 +7,8 @@ Logic xử lý (thêm/update worker trong pool) được chuyển sang Kafka con
 from socketio import AsyncServer
 from pydantic import ValidationError
 
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
-from src.kafka.producer.server.dto.WorkerActiveEventDto import WorkerActiveEventDto
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.main.kafka_producer.server.dto.WorkerActiveEventDto import WorkerActiveEventDto
 
 from src.socketio.shared.dto.connection import WorkerActiveDto
 

@@ -8,8 +8,6 @@ from socketio import AsyncServer
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio.socketio_server.main.enum.MainNamespace import MainNamespaces
-from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
-from src.socketio.socketio_server.main.manager.PairManager import PairManager
 
 
 class ReceiverDisconnectedHandler(IEventHandler):

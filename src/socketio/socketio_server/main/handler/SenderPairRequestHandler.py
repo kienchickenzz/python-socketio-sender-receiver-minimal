@@ -7,8 +7,8 @@ Logic xử lý (pairing sender với receiver) được chuyển sang Kafka cons
 from socketio import AsyncServer
 from pydantic import ValidationError
 
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
-from src.kafka.producer.server.dto.SenderPairRequestEventDto import (
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.main.kafka_producer.server.dto.SenderPairRequestEventDto import (
     SenderPairRequestEventDto,
 )
 

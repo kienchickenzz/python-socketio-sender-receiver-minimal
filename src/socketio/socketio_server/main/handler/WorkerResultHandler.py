@@ -7,8 +7,8 @@ Logic xử lý (tìm job, update status, emit về receiver) được chuyển s
 from socketio import AsyncServer
 from pydantic import ValidationError
 
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
-from src.kafka.producer.server.dto.WorkerResultEventDto import WorkerResultEventDto
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.main.kafka_producer.server.dto.WorkerResultEventDto import WorkerResultEventDto
 
 from src.socketio.shared.dto.processing import WorkerResultDto
 

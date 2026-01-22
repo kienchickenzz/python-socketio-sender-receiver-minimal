@@ -6,8 +6,8 @@ thông qua tính đa hình (polymorphism).
 """
 from kafka import KafkaProducer
 
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
-from src.kafka.producer.shared.dto.KafkaEventDto import KafkaEventDto
+from src.socketio.socketio_server.shared.kafka_producer.base.JsonSerializer import JsonSerializer
+from src.socketio.socketio_server.shared.kafka_producer.dto.KafkaEventDto import KafkaEventDto
 
 
 class KafkaEventPublisher:

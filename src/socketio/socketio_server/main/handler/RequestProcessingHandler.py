@@ -7,8 +7,8 @@ Logic xử lý (chọn worker, dispatch job) được chuyển sang Kafka consum
 from socketio import AsyncServer
 from pydantic import ValidationError
 
-from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
-from src.kafka.producer.server.dto.RequestProcessingEventDto import (
+from src.socketio.socketio_server.main.kafka_producer.KafkaEventPublisher import KafkaEventPublisher
+from src.socketio.socketio_server.main.kafka_producer.server.dto.RequestProcessingEventDto import (
     RequestProcessingEventDto,
 )
 
