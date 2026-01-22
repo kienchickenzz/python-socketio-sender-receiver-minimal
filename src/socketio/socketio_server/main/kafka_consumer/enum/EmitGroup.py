@@ -17,9 +17,13 @@ class EmitGroup(BaseGroups):
         PAIR_REQUEST_SUCCESS_DLQ: Group cho xử lý DLQ của pair request success
         PAIR_REQUEST_FAILED: Group cho xử lý pair request failed
         PAIR_REQUEST_FAILED_DLQ: Group cho xử lý DLQ của pair request failed
+        WORKER_JOB: Group cho xử lý worker job events
+        WORKER_JOB_DLQ: Group cho xử lý DLQ của worker job
     """
 
     PAIR_REQUEST_SUCCESS = ConsumerGroup("emit-pair-request-success-group")
     PAIR_REQUEST_SUCCESS_DLQ = ConsumerGroup("emit-pair-request-success-dlq-group")
     PAIR_REQUEST_FAILED = ConsumerGroup("emit-pair-request-failed-group")
     PAIR_REQUEST_FAILED_DLQ = ConsumerGroup("emit-pair-request-failed-dlq-group")
+    WORKER_JOB = ConsumerGroup("emit-worker-job-group")
+    WORKER_JOB_DLQ = ConsumerGroup("emit-worker-job-dlq-group")

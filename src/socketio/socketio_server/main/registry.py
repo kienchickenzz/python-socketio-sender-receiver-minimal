@@ -87,7 +87,7 @@ class MainEventRegistry(BaseEventRegistry):
             ReceiverReadyHandler(event_publisher=self._event_publisher),
             SenderDisconnectedHandler(event_publisher=self._event_publisher),
             SenderPairRequestHandler(event_publisher=self._event_publisher),
-            RequestProcessingHandler(),
+            RequestProcessingHandler(event_publisher=self._event_publisher),
             WorkerActiveHandler(event_publisher=self._event_publisher),
             WorkerResultHandler(),
         ]
@@ -99,10 +99,10 @@ class MainEventRegistry(BaseEventRegistry):
         Dependency injection có điều kiện:
         - ReceiverManager: DISCONNECT, RECEIVER_READY
         - SenderManager: DISCONNECT
-        - WorkerManager: REQUEST_PROCESSING, WORKER_RESULT
-        - JobManager: REQUEST_PROCESSING, WORKER_RESULT
+        - WorkerManager: WORKER_RESULT
+        - JobManager: WORKER_RESULT
 
-        Lưu ý: WORKER_ACTIVE và SENDER_PAIR_REQUEST không cần manager
+        Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING không cần manager
         vì đã chuyển logic sang Kafka consumer.
 
         Args:
@@ -113,12 +113,11 @@ class MainEventRegistry(BaseEventRegistry):
         """
 
         # Xác định các events cần inject managers
-        # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST không cần manager
+        # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING không cần manager
         # vì đã chuyển logic sang Kafka consumer
         events_need_manager = {
             MainEvents.DISCONNECT,
             MainEvents.RECEIVER_READY,
-            MainEvents.REQUEST_PROCESSING,
             MainEvents.WORKER_RESULT,
         }
 
@@ -163,8 +162,8 @@ class MainEventRegistry(BaseEventRegistry):
 
                     # Inject managers có điều kiện dựa trên event type
                     # Chỉ inject manager nào cần thiết cho event cụ thể
-                    # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST không cần manager
-                    # vì đã chuyển logic sang Kafka consumer
+                    # Lưu ý: WORKER_ACTIVE, SENDER_PAIR_REQUEST, REQUEST_PROCESSING
+                    # không cần manager vì đã chuyển logic sang Kafka consumer
 
                     # ReceiverManager: cần cho DISCONNECT, RECEIVER_READY
                     if handler.event in {
@@ -177,18 +176,12 @@ class MainEventRegistry(BaseEventRegistry):
                     if handler.event == MainEvents.DISCONNECT:
                         data["__sender_manager__"] = self._sender_manager
 
-                    # WorkerManager: cần cho REQUEST_PROCESSING, WORKER_RESULT
-                    if handler.event in {
-                        MainEvents.REQUEST_PROCESSING,
-                        MainEvents.WORKER_RESULT,
-                    }:
+                    # WorkerManager: cần cho WORKER_RESULT
+                    if handler.event == MainEvents.WORKER_RESULT:
                         data["__worker_manager__"] = self._worker_manager
 
-                    # JobManager: cần cho REQUEST_PROCESSING, WORKER_RESULT
-                    if handler.event in {
-                        MainEvents.REQUEST_PROCESSING,
-                        MainEvents.WORKER_RESULT,
-                    }:
+                    # JobManager: cần cho WORKER_RESULT
+                    if handler.event == MainEvents.WORKER_RESULT:
                         data["__job_manager__"] = self._job_manager
 
                 # Execute handler với đầy đủ parameters: (sio, sid, data)

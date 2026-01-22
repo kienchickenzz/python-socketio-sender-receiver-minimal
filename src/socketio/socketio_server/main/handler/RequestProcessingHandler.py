@@ -1,46 +1,65 @@
 """
 RequestProcessingHandler - Xử lý khi sender gửi request xử lý data
 
-Handler nhận data từ sender và chuyển tiếp cho worker để xử lý.
+Handler chỉ publish sự kiện vào Kafka, không xử lý logic trực tiếp.
+Logic xử lý (chọn worker, dispatch job) được chuyển sang Kafka consumer.
 """
-import random
 from socketio import AsyncServer
 from pydantic import ValidationError
+
+from src.kafka.producer.KafkaEventPublisher import KafkaEventPublisher
+from src.kafka.producer.server.dto.RequestProcessingEventDto import (
+    RequestProcessingEventDto,
+)
+
+from src.socketio.shared.dto.processing import RequestProcessingDto
 
 from src.socketio.socketio_server.shared.interface.IEventHandler import IEventHandler
 from src.socketio.socketio_server.main.enum.MainEvent import MainEvents
 from src.socketio.socketio_server.main.enum.MainNamespace import MainNamespaces
-from src.socketio.socketio_server.main.manager.WorkerManager import WorkerManager
-from src.socketio.socketio_server.main.manager.JobManager import JobManager
-from src.socketio.socketio_server.main.enum.WorkerStatus import WorkerStatus
-from src.socketio.shared.dto.processing import RequestProcessingDto, WorkerJobDto
 
 
 class RequestProcessingHandler(IEventHandler):
     """
     Handler xử lý sự kiện request-processing.
 
-    Stateless handler - nhận data từ sender, chọn worker ACTIVE ngẫu nhiên,
-    và emit worker-job event cho worker để xử lý.
+    Chỉ publish event vào Kafka, không xử lý logic trực tiếp.
+    Logic xử lý được thực hiện bởi Kafka RequestProcessingConsumerHandler.
+
+    Flow:
+        1. Nhận sự kiện request-processing từ SocketIO
+        2. Validate data format với RequestProcessingDto (client DTO)
+        3. Tạo RequestProcessingEventDto (Kafka DTO) và publish
+        4. Kafka consumer sẽ:
+           - Chọn worker ACTIVE ngẫu nhiên
+           - Dispatch job cho worker
+           - Tracking job trong JobManager
     """
 
     event = MainEvents.REQUEST_PROCESSING
     namespace = MainNamespaces.ROOT
 
-    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
+    def __init__(self, event_publisher: KafkaEventPublisher):
         """
-        Xử lý khi sender emit request-processing event.
+        Khởi tạo handler với Kafka publisher được inject từ bên ngoài.
 
         Args:
-            sio: SocketIO AsyncServer instance
-            sid: Socket ID của sender
+            event_publisher (KafkaEventPublisher): Generic publisher để publish events
+        """
+        self._publisher = event_publisher
+
+    async def handle(self, sio: AsyncServer, client_sid: str | None, data=None):
+        """
+        Publish sự kiện request processing vào Kafka.
+
+        Args:
+            sio (AsyncServer): SocketIO AsyncServer instance
+            client_sid (str | None): Socket ID của sender
             data: Dict chứa:
                 - pair_id: ID của cặp sender-receiver
                 - sender_id: ID của sender
                 - receiver_id: ID của receiver
-                - data: Dãy số cần xử lý (list of int)
-                - __worker_manager__: WorkerManager injected từ registry
-                - __job_manager__: JobManager injected từ registry
+                - data: Dữ liệu cần xử lý (list of numbers)
 
         Returns:
             None (fire-and-forget)
@@ -49,80 +68,32 @@ class RequestProcessingHandler(IEventHandler):
             print(f"[RequestProcessingHandler] No data received from {client_sid}")
             return
 
-        worker_manager: WorkerManager | None = data.get("__worker_manager__")
-        job_manager: JobManager | None = data.get("__job_manager__")
-
-        # Deserialize data thành DTO
+        # Validate data format từ client
         try:
-            dto = RequestProcessingDto(**data)
+            client_dto = RequestProcessingDto(**data)
         except ValidationError as e:
             print(f"[RequestProcessingHandler] Invalid data format from {client_sid}: {e}")
             return
 
         print(f"\n{'='*60}")
-        print(f"[RequestProcessingHandler] 📥 RECEIVED PROCESSING REQUEST")
-        print(f"[RequestProcessingHandler] Pair ID: {dto.pair_id}")
-        print(f"[RequestProcessingHandler] Sender ID: {dto.sender_id}")
-        print(f"[RequestProcessingHandler] Receiver ID: {dto.receiver_id}")
-        print(f"[RequestProcessingHandler] Data: {dto.data}")
-        print(f"[RequestProcessingHandler] Data length: {len(dto.data)}")
+        print(f"[RequestProcessingHandler] REQUEST PROCESSING")
+        print(f"[RequestProcessingHandler] Pair ID: {client_dto.pair_id}")
+        print(f"[RequestProcessingHandler] Sender ID: {client_dto.sender_id}")
+        print(f"[RequestProcessingHandler] Receiver ID: {client_dto.receiver_id}")
+        print(f"[RequestProcessingHandler] Data length: {len(client_dto.data)}")
+        print(f"[RequestProcessingHandler] Client SID: {client_sid}")
+        print(f"[RequestProcessingHandler] Publishing to Kafka...")
         print(f"{'='*60}\n")
 
-        if not worker_manager:
-            print(f"[RequestProcessingHandler] ❌ No WorkerManager injected")
-            return
-
-        if not job_manager:
-            print(f"[RequestProcessingHandler] ❌ No JobManager injected")
-            return
-
-        # Lấy tất cả workers đang ACTIVE
-        active_workers = worker_manager.get_workers_by_status(WorkerStatus.ACTIVE)
-
-        if not active_workers:
-            print(f"[RequestProcessingHandler] ❌ No ACTIVE workers available")
-            # TODO: Có thể emit event thông báo sender không có worker
-            return
-
-        # Chọn ngẫu nhiên 1 worker từ danh sách ACTIVE
-        worker_id = random.choice(list(active_workers.keys()))
-
-        print(f"[RequestProcessingHandler] 🎯 Selected worker: {worker_id}")
-        print(f"[RequestProcessingHandler] Total ACTIVE workers: {len(active_workers)}")
-
-        # Tạo DTO và serialize để emit
-        job_dto = WorkerJobDto(
-            pair_id=dto.pair_id,
-            sender_id=dto.sender_id,
-            receiver_id=dto.receiver_id,
-            worker_id=worker_id,
-            data=dto.data,
+        # Chuyển đổi client DTO sang Kafka DTO và publish
+        kafka_dto = RequestProcessingEventDto(
+            client_sid=client_sid,
+            pair_id=client_dto.pair_id,
+            sender_id=client_dto.sender_id,
+            receiver_id=client_dto.receiver_id,
+            data=client_dto.data,
         )
-        payload = job_dto.model_dump(by_alias=True)
+        self._publisher.publish(kafka_dto)
 
-        # Emit worker-job event tới worker được chọn
-        await sio.emit(
-            MainEvents.WORKER_JOB.value,
-            payload,
-            room=worker_id,
-            namespace=self.namespace.value,
-        )
-
-        print(f"[RequestProcessingHandler] ✅ Emitted worker-job to worker {worker_id}")
-
-        # Thêm job vào JobManager để tracking (FIFO queue per sender)
-        job_id = job_manager.add_job(
-            sender_id=dto.sender_id,
-            worker_id=worker_id,
-            pair_id=dto.pair_id,
-            input_data=dto.data,
-        )
-
-        print(f"[RequestProcessingHandler] 📝 Created job tracking: {job_id}")
-        print(
-            f"[RequestProcessingHandler] Sender {dto.sender_id} queue size: {job_manager.count_sender_jobs(dto.sender_id)}"
-        )
-        print(
-            f"[RequestProcessingHandler] Total active jobs: {job_manager.count_all_jobs()}"
-        )
+        print(f"[RequestProcessingHandler] Published to Kafka topic: {kafka_dto.get_topic().value}")
         print(f"{'='*60}\n")

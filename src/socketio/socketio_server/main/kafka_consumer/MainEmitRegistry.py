@@ -4,6 +4,7 @@ MainEmitRegistry - Registry cho Main Server emit consumers.
 Đăng ký và quản lý các emit consumer handlers:
 - PairRequestSuccessEmitHandler: Emit khi pairing thành công
 - PairRequestFailedEmitHandler: Emit khi pairing thất bại
+- WorkerJobEmitHandler: Emit job tới worker để xử lý
 
 Nhận AsyncServer và event_loop để emit SocketIO events từ Kafka consumer threads.
 """
@@ -30,6 +31,9 @@ from src.socketio.socketio_server.main.kafka_consumer.handler.PairRequestSuccess
 from src.socketio.socketio_server.main.kafka_consumer.handler.PairRequestFailedEmitHandler import (
     PairRequestFailedEmitHandler,
 )
+from src.socketio.socketio_server.main.kafka_consumer.handler.WorkerJobEmitHandler import (
+    WorkerJobEmitHandler,
+)
 
 
 class MainEmitRegistry(BaseEmitRegistry):
@@ -42,6 +46,7 @@ class MainEmitRegistry(BaseEmitRegistry):
     Handlers:
         - PairRequestSuccessEmitHandler: Emit pair-request-success về client
         - PairRequestFailedEmitHandler: Emit pair-request-failed về client
+        - WorkerJobEmitHandler: Emit worker-job về worker
 
     Example:
         # Khởi tạo ở application root
@@ -95,4 +100,5 @@ class MainEmitRegistry(BaseEmitRegistry):
         return [
             PairRequestSuccessEmitHandler(),
             PairRequestFailedEmitHandler(),
+            WorkerJobEmitHandler(),
         ]

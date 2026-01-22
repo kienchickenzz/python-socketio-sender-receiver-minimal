@@ -17,9 +17,11 @@ class ServerTopic(BaseTopics):
         RECEIVER_READY: Topic cho sự kiện receiver ready
         WORKER_ACTIVE: Topic cho sự kiện worker active
         SENDER_PAIR_REQUEST: Topic cho sự kiện sender yêu cầu pair
+        REQUEST_PROCESSING: Topic cho sự kiện sender gửi request xử lý
     """
 
     SENDER_DISCONNECTED = KafkaTopic("server.sender-disconnected")
     RECEIVER_READY = KafkaTopic("server.receiver-ready")
     WORKER_ACTIVE = KafkaTopic("server.worker-active")
     SENDER_PAIR_REQUEST = KafkaTopic("server.sender-pair-request")
+    REQUEST_PROCESSING = KafkaTopic("server.request-processing")
