@@ -6,13 +6,14 @@ import asyncio
 from socketio import AsyncClient
 
 from src.socketio.socketio_client.receiver.registry import ReceiverEventRegistry
+from src.socketio.socketio_client.receiver.enum.ReceiverEvent import ReceiverEvent
 
 
 async def run_client():
     """Run SocketIO Client"""
     # Create SocketIO client
     sio = AsyncClient(logger=False, engineio_logger=False)
-    ReceiverEventRegistry(sio)
+    registry = ReceiverEventRegistry(sio)
 
     try:
         await sio.connect('http://localhost:5000', namespaces=['/'])
@@ -28,4 +29,11 @@ async def run_client():
         print(f"❌ Error: {e}")
         print("Make sure the server is running!")
     finally:
+        # Emit disconnect event to server before disconnecting
+        if registry.session_id:
+            print(f"[Receiver] Emitting disconnect event...")
+            await sio.emit(
+                ReceiverEvent.RECEIVER_DISCONNECTED.value,
+                {"sessionId": registry.session_id}
+            )
         await sio.disconnect()

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from src.socketio.socketio_client.shared.interface.IEventHandler import IEventHandler
 from src.socketio.socketio_client.receiver.enum.ReceiverEvent import ReceiverEvent
 from src.socketio.socketio_client.receiver.enum.ReceiverNamespace import ReceiverNamespace
-from src.socketio.shared.dto.connection import SenderDisconnectedDto
+from src.socketio.shared.dto.connection import SenderDisconnectDto
 
 
 class SenderDisconnectedHandler(IEventHandler):
@@ -44,7 +44,7 @@ class SenderDisconnectedHandler(IEventHandler):
 
         # Deserialize data thành DTO
         try:
-            dto = SenderDisconnectedDto(**data)
+            dto = SenderDisconnectDto(**data)
         except ValidationError as e:
             print(f"[Receiver] Invalid sender-disconnected data: {e}")
             return None

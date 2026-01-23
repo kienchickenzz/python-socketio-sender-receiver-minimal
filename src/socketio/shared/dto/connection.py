@@ -139,7 +139,7 @@ class SenderPairRequestDto(DtoBase):
     session_id: str
 
 
-class SenderDisconnectedDto(DtoBase):
+class SenderDisconnectDto(DtoBase):
     """
     DTO cho SENDER_DISCONNECTED event.
 
@@ -173,3 +173,33 @@ class SenderDisconnectedDto(DtoBase):
 
     sender_id: str
     pair_id: str
+
+
+class ReceiverDisconnectDto(DtoBase):
+    """
+    DTO cho RECEIVER_DISCONNECTED event (Client → Server).
+
+    Receiver emit event này lên server trước khi ngắt kết nối.
+    Đây là graceful shutdown signal để server có thể cleanup.
+
+    Event flow:
+        Receiver emits RECEIVER_DISCONNECTED →
+        Server receives and starts cleanup →
+        Receiver calls sio.disconnect()
+
+    Usage:
+        Client (emit):
+            dto = ReceiverDisconnectDto(session_id="receiver-456")
+            await sio.emit("receiver-disconnected", dto.model_dump(by_alias=True))
+            # → {"sessionId": "receiver-456"}
+
+        Server (receive):
+            dto = ReceiverDisconnectDto(**data)
+            receiver_id = dto.session_id
+
+    Used by:
+        - Receiver: run_receiver.py (emit before disconnect)
+        - Server: ReceiverDisconnectHandler (receive)
+    """
+
+    session_id: str
