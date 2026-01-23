@@ -18,3 +18,4 @@ class ReceiverEvent(BaseEvents):
     PAIR_REQUEST_SUCCESS = SocketEvent("pair-request-success")
     PROCESSING_RESULT = SocketEvent("processing-result")
     RECEIVER_DISCONNECTED = SocketEvent("receiver-disconnected")
+    SENDER_DISCONNECTED = SocketEvent("sender-disconnected")

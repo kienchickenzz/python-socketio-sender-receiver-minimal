@@ -9,6 +9,7 @@ DTOs:
     - ReceiverReadyDto: Receiver → Server (báo receiver sẵn sàng)
     - WorkerActiveDto: Worker → Server (báo worker active)
     - SenderPairRequestDto: Sender → Server (yêu cầu pair với receiver)
+    - SenderDisconnectedDto: Server → Receiver (thông báo sender ngắt kết nối)
 """
 from src.socketio.shared.dto.DtoBase import DtoBase
 
@@ -136,3 +137,39 @@ class SenderPairRequestDto(DtoBase):
     """
 
     session_id: str
+
+
+class SenderDisconnectedDto(DtoBase):
+    """
+    DTO cho SENDER_DISCONNECTED event.
+
+    Server emit event này cho receiver khi sender đã ngắt kết nối.
+    Receiver nhận được thông tin pair_id và sender_id để xử lý.
+
+    Event flow:
+        Sender disconnects →
+        Server processes cleanup →
+        Server emits SENDER_DISCONNECTED to Receiver →
+        Receiver handles the disconnection (e.g., reset state)
+
+    Usage:
+        Server (emit):
+            dto = SenderDisconnectedDto(
+                sender_id="sender-123",
+                pair_id="pair-abc"
+            )
+            await sio.emit("sender-disconnected", dto.model_dump(by_alias=True))
+            # → {"senderId": "sender-123", "pairId": "pair-abc"}
+
+        Receiver (receive):
+            dto = SenderDisconnectedDto(**data)
+            sender_id = dto.sender_id
+            pair_id = dto.pair_id
+
+    Used by:
+        - Server: SenderDisconnectedEmitHandler (emit)
+        - Receiver: SenderDisconnectedHandler (receive) - to be implemented
+    """
+
+    sender_id: str
+    pair_id: str

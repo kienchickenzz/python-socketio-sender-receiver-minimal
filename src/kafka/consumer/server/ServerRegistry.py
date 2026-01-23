@@ -56,7 +56,7 @@ class ServerRegistry(BaseEventRegistry):
     emit về client.
 
     Handlers:
-        - SenderDisconnectConsumerHandler: Cleanup khi sender disconnect
+        - SenderDisconnectConsumerHandler: Cleanup khi sender disconnect, emit thông báo về receiver
         - ReceiverReadyConsumerHandler: Thêm receiver vào pool khi ready
         - WorkerActiveConsumerHandler: Thêm/update worker khi active
         - SenderPairRequestConsumerHandler: Xử lý pairing sender với receiver
@@ -129,6 +129,7 @@ class ServerRegistry(BaseEventRegistry):
         """
         return [
             SenderDisconnectConsumerHandler(
+                emit_publisher=self._emit_publisher,
                 sender_manager=self._sender_manager,
                 receiver_manager=self._receiver_manager,
                 pair_manager=self._pair_manager,

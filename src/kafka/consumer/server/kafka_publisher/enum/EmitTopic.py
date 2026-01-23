@@ -19,9 +19,11 @@ class EmitTopic(BaseTopics):
         PAIR_REQUEST_FAILED: Emit kết quả pair thất bại
         WORKER_JOB: Emit job tới worker để xử lý
         PROCESSING_RESULT: Emit kết quả xử lý về receiver
+        SENDER_DISCONNECTED: Emit thông báo sender ngắt kết nối về receiver
     """
 
     PAIR_REQUEST_SUCCESS = KafkaTopic("emit.pair-request-success")
     PAIR_REQUEST_FAILED = KafkaTopic("emit.pair-request-failed")
     WORKER_JOB = KafkaTopic("emit.worker-job")
     PROCESSING_RESULT = KafkaTopic("emit.processing-result")
+    SENDER_DISCONNECTED = KafkaTopic("emit.sender-disconnected")

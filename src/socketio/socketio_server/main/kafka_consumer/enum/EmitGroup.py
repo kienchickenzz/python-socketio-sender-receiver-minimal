@@ -21,6 +21,8 @@ class EmitGroup(BaseGroups):
         WORKER_JOB_DLQ: Group cho xử lý DLQ của worker job
         PROCESSING_RESULT: Group cho xử lý processing result events
         PROCESSING_RESULT_DLQ: Group cho xử lý DLQ của processing result
+        SENDER_DISCONNECTED: Group cho xử lý sender disconnected events
+        SENDER_DISCONNECTED_DLQ: Group cho xử lý DLQ của sender disconnected
     """
 
     PAIR_REQUEST_SUCCESS = ConsumerGroup("emit-pair-request-success-group")
@@ -31,3 +33,5 @@ class EmitGroup(BaseGroups):
     WORKER_JOB_DLQ = ConsumerGroup("emit-worker-job-dlq-group")
     PROCESSING_RESULT = ConsumerGroup("emit-processing-result-group")
     PROCESSING_RESULT_DLQ = ConsumerGroup("emit-processing-result-dlq-group")
+    SENDER_DISCONNECTED = ConsumerGroup("emit-sender-disconnected-group")
+    SENDER_DISCONNECTED_DLQ = ConsumerGroup("emit-sender-disconnected-dlq-group")

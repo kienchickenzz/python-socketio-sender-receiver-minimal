@@ -4,9 +4,10 @@ SenderDisconnectConsumerHandler - Consumer xử lý logic khi sender disconnect
 Nhận message từ Kafka và thực hiện cleanup:
 1. Tìm pair của sender
 2. Set receiver về IDLE
-3. Cancel tất cả jobs của pair
-4. Xóa pair
-5. Xóa sender
+3. Publish emit event thông báo sender disconnect về receiver
+4. Cancel tất cả jobs của pair
+5. Xóa pair
+6. Xóa sender
 """
 from typing import ClassVar
 from pydantic import ValidationError
@@ -19,6 +20,12 @@ from src.kafka.consumer.shared.enum.KafkaTopic import KafkaTopic
 from src.kafka.consumer.shared.enum.ConsumerGroup import ConsumerGroup
 from src.kafka.consumer.server.enum.ServerTopic import ServerTopic
 from src.kafka.consumer.server.enum.ServerGroup import ServerGroup
+from src.kafka.consumer.shared.kafka_publisher.base.KafkaEmitPublisher import (
+    KafkaEmitPublisher,
+)
+from src.kafka.consumer.server.kafka_publisher.dto.SenderDisconnectedEmitDto import (
+    SenderDisconnectedEmitDto,
+)
 
 from src.socketio.socketio_server.main.manager.SenderManager import SenderManager
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
@@ -38,11 +45,12 @@ class SenderDisconnectConsumerHandler(IEventHandler, IDLQHandler):
         3. Nếu có pair:
            - Lấy receiver_id từ pair
            - Set receiver về trạng thái IDLE
+           - Publish emit event thông báo sender disconnect về receiver
            - Tìm và cancel tất cả jobs của pair
            - Xóa bản ghi pair
         4. Xóa sender
 
-    Managers được inject từ ServerRegistry để đảm bảo clear ownership.
+    Managers và emit_publisher được inject từ ServerRegistry.
     """
 
     # Main consumer config
@@ -55,6 +63,7 @@ class SenderDisconnectConsumerHandler(IEventHandler, IDLQHandler):
 
     def __init__(
         self,
+        emit_publisher: KafkaEmitPublisher,
         sender_manager: SenderManager,
         receiver_manager: ReceiverManager,
         pair_manager: PairManager,
@@ -64,11 +73,13 @@ class SenderDisconnectConsumerHandler(IEventHandler, IDLQHandler):
         Khởi tạo handler với các managers được inject từ bên ngoài.
 
         Args:
+            emit_publisher (KafkaEmitPublisher): Publisher để publish emit events
             sender_manager (SenderManager): Manager quản lý senders
             receiver_manager (ReceiverManager): Manager quản lý receivers
             pair_manager (PairManager): Manager quản lý pairs
             job_manager (JobManager): Manager quản lý jobs
         """
+        self._emit_publisher = emit_publisher
         self._sender_manager = sender_manager
         self._receiver_manager = receiver_manager
         self._pair_manager = pair_manager
@@ -115,6 +126,17 @@ class SenderDisconnectConsumerHandler(IEventHandler, IDLQHandler):
                 print(f"[SenderDisconnectConsumer] ✅ Set receiver {receiver_id} to IDLE")
             else:
                 print(f"[SenderDisconnectConsumer] ⚠️ Failed to update receiver {receiver_id} status")
+
+            # 3.5. Publish emit event thông báo sender disconnect về receiver
+            emit_dto = SenderDisconnectedEmitDto(
+                target_sid=receiver_id,
+                sender_id=sender_id,
+                pair_id=str(pair_id),
+            )
+            self._emit_publisher.publish(emit_dto)
+            print(f"[SenderDisconnectConsumer] 📤 Published sender-disconnected emit to receiver {receiver_id}")
+
+            # TODO: Có thể thêm bước notify worker để hủy job đang chạy (OPTIONAL)
 
             # 4. Tìm và cancel tất cả jobs của pair
             jobs = self._job_manager.get_jobs_by_pair(str(pair_id))

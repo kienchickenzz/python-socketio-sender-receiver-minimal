@@ -17,6 +17,9 @@ from src.socketio.socketio_client.receiver.handler.PairRequestSuccessHandler imp
 from src.socketio.socketio_client.receiver.handler.ProcessingResultHandler import (
     ProcessingResultHandler,
 )
+from src.socketio.socketio_client.receiver.handler.SenderDisconnectedHandler import (
+    SenderDisconnectedHandler,
+)
 
 
 class ReceiverEventRegistry(BaseEventRegistry):
@@ -39,4 +42,5 @@ class ReceiverEventRegistry(BaseEventRegistry):
             DisconnectHandler(),
             PairRequestSuccessHandler(),
             ProcessingResultHandler(),
+            SenderDisconnectedHandler(),
         ]

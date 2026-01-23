@@ -14,7 +14,7 @@ from src.kafka.consumer.shared.infrastructure.KafkaProducerFactory import KafkaP
 from src.kafka.consumer.shared.infrastructure.DeadLetterPublisher import DeadLetterPublisher
 from src.kafka.consumer.shared.kafka_publisher.base.KafkaEmitPublisher import KafkaEmitPublisher
 from src.kafka.consumer.server.ServerRegistry import ServerRegistry
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
+from src.kafka.consumer.shared.base.JsonSerializer import JsonSerializer
 
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio.socketio_server.main.manager.SenderManager import SenderManager

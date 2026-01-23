@@ -8,7 +8,7 @@ Trách nhiệm:
 """
 from kafka import KafkaConsumer
 
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
+from src.kafka.consumer.shared.base.JsonSerializer import JsonSerializer
 
 from src.kafka.consumer.shared.infrastructure.KafkaConfig import KafkaConfig
 from src.kafka.consumer.shared.interface.IEventHandler import IEventHandler

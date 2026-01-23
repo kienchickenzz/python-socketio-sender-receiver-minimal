@@ -8,7 +8,7 @@ Trách nhiệm:
 """
 from kafka import KafkaProducer
 
-from src.kafka.shared.base.JsonSerializer import JsonSerializer
+from src.kafka.consumer.shared.base.JsonSerializer import JsonSerializer
 from src.kafka.consumer.shared.enum.KafkaTopic import KafkaTopic
 from src.kafka.consumer.shared.model.DLQMessage import DLQMessage
 

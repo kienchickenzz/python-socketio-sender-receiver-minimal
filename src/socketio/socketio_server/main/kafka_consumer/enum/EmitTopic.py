@@ -21,6 +21,8 @@ class EmitTopic(BaseTopics):
         WORKER_JOB_DLQ: DLQ topic cho worker job failures
         PROCESSING_RESULT: Topic cho kết quả xử lý về receiver
         PROCESSING_RESULT_DLQ: DLQ topic cho processing result failures
+        SENDER_DISCONNECTED: Topic cho thông báo sender ngắt kết nối
+        SENDER_DISCONNECTED_DLQ: DLQ topic cho sender disconnected failures
     """
 
     PAIR_REQUEST_SUCCESS = KafkaTopic("emit.pair-request-success")
@@ -31,3 +33,5 @@ class EmitTopic(BaseTopics):
     WORKER_JOB_DLQ = KafkaTopic("emit.worker-job.dlq")
     PROCESSING_RESULT = KafkaTopic("emit.processing-result")
     PROCESSING_RESULT_DLQ = KafkaTopic("emit.processing-result.dlq")
+    SENDER_DISCONNECTED = KafkaTopic("emit.sender-disconnected")
+    SENDER_DISCONNECTED_DLQ = KafkaTopic("emit.sender-disconnected.dlq")
