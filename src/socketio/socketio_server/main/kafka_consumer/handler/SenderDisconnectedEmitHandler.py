@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from socketio import AsyncServer
 
-from src.socketio.shared.dto.connection import SenderDisconnectedDto
+from src.socketio.shared.dto.connection import SenderDisconnectDto
 from src.socketio.socketio_server.shared.kafka_consumer.interface.IEmitHandler import (
     IEmitHandler,
 )
@@ -80,7 +80,7 @@ class SenderDisconnectedEmitHandler(IEmitHandler, IDLQHandler):
         print(f"{'='*60}\n")
 
         # 2. Tạo payload cho SocketIO emit
-        payload_dto = SenderDisconnectedDto(
+        payload_dto = SenderDisconnectDto(
             sender_id=dto.sender_id,
             pair_id=dto.pair_id,
         )

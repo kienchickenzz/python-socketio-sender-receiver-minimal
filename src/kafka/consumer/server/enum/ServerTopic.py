@@ -17,8 +17,12 @@ class ServerTopic(BaseTopics):
         SENDER_DISCONNECTED_DLQ: DLQ topic cho sender disconnect failures
         RECEIVER_READY: Topic cho sự kiện receiver ready
         RECEIVER_READY_DLQ: DLQ topic cho receiver ready failures
+        RECEIVER_DISCONNECTED: Topic cho sự kiện receiver disconnect
+        RECEIVER_DISCONNECTED_DLQ: DLQ topic cho receiver disconnect failures
         WORKER_ACTIVE: Topic cho sự kiện worker active
         WORKER_ACTIVE_DLQ: DLQ topic cho worker active failures
+        WORKER_DISCONNECTED: Topic cho sự kiện worker disconnect
+        WORKER_DISCONNECTED_DLQ: DLQ topic cho worker disconnect failures
         SENDER_PAIR_REQUEST: Topic cho sự kiện sender yêu cầu pair
         SENDER_PAIR_REQUEST_DLQ: DLQ topic cho sender pair request failures
         REQUEST_PROCESSING: Topic cho sự kiện sender gửi request xử lý
@@ -31,8 +35,12 @@ class ServerTopic(BaseTopics):
     SENDER_DISCONNECTED_DLQ = KafkaTopic("server.sender-disconnected.dlq")
     RECEIVER_READY = KafkaTopic("server.receiver-ready")
     RECEIVER_READY_DLQ = KafkaTopic("server.receiver-ready.dlq")
+    RECEIVER_DISCONNECTED = KafkaTopic("server.receiver-disconnected")
+    RECEIVER_DISCONNECTED_DLQ = KafkaTopic("server.receiver-disconnected.dlq")
     WORKER_ACTIVE = KafkaTopic("server.worker-active")
     WORKER_ACTIVE_DLQ = KafkaTopic("server.worker-active.dlq")
+    WORKER_DISCONNECTED = KafkaTopic("server.worker-disconnected")
+    WORKER_DISCONNECTED_DLQ = KafkaTopic("server.worker-disconnected.dlq")
     SENDER_PAIR_REQUEST = KafkaTopic("server.sender-pair-request")
     SENDER_PAIR_REQUEST_DLQ = KafkaTopic("server.sender-pair-request.dlq")
     REQUEST_PROCESSING = KafkaTopic("server.request-processing")

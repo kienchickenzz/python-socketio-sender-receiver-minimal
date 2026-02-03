@@ -4,7 +4,9 @@ ServerRegistry - Registry cho Server domain Kafka consumers
 Đăng ký và quản lý các consumer handlers cho server events:
 - SenderDisconnectConsumerHandler: Xử lý khi sender disconnect
 - ReceiverReadyConsumerHandler: Xử lý khi receiver sẵn sàng
+- ReceiverDisconnectConsumerHandler: Xử lý khi receiver disconnect
 - WorkerActiveConsumerHandler: Xử lý khi worker báo active
+- WorkerDisconnectConsumerHandler: Xử lý khi worker disconnect
 - SenderPairRequestConsumerHandler: Xử lý khi sender yêu cầu pair
 - RequestProcessingConsumerHandler: Xử lý khi sender gửi request xử lý
 - WorkerResultConsumerHandler: Xử lý khi worker trả kết quả
@@ -36,6 +38,12 @@ from src.kafka.consumer.server.handler.RequestProcessingConsumerHandler import (
 from src.kafka.consumer.server.handler.WorkerResultConsumerHandler import (
     WorkerResultConsumerHandler,
 )
+from src.kafka.consumer.server.handler.WorkerDisconnectConsumerHandler import (
+    WorkerDisconnectConsumerHandler,
+)
+from src.kafka.consumer.server.handler.ReceiverDisconnectConsumerHandler import (
+    ReceiverDisconnectConsumerHandler,
+)
 
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio.socketio_server.main.manager.SenderManager import SenderManager
@@ -58,7 +66,9 @@ class ServerRegistry(BaseEventRegistry):
     Handlers:
         - SenderDisconnectConsumerHandler: Cleanup khi sender disconnect, emit thông báo về receiver
         - ReceiverReadyConsumerHandler: Thêm receiver vào pool khi ready
+        - ReceiverDisconnectConsumerHandler: Xóa receiver khỏi pool khi disconnect
         - WorkerActiveConsumerHandler: Thêm/update worker khi active
+        - WorkerDisconnectConsumerHandler: Xóa worker khỏi pool khi disconnect
         - SenderPairRequestConsumerHandler: Xử lý pairing sender với receiver
         - RequestProcessingConsumerHandler: Dispatch job cho worker xử lý
         - WorkerResultConsumerHandler: Xử lý kết quả từ worker, FIFO ordering
@@ -156,5 +166,11 @@ class ServerRegistry(BaseEventRegistry):
                 emit_publisher=self._emit_publisher,
                 worker_manager=self._worker_manager,
                 job_manager=self._job_manager,
+            ),
+            WorkerDisconnectConsumerHandler(
+                worker_manager=self._worker_manager,
+            ),
+            ReceiverDisconnectConsumerHandler(
+                receiver_manager=self._receiver_manager,
             ),
         ]

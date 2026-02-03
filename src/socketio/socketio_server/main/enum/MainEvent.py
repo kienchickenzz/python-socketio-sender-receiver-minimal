@@ -30,3 +30,4 @@ class MainEvents(BaseEvents):
 
     RECEIVER_DISCONNECTED = SocketEvent("receiver-disconnected")
     SENDER_DISCONNECTED = SocketEvent("sender-disconnected")
+    WORKER_DISCONNECTED = SocketEvent("worker-disconnected")

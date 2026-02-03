@@ -17,3 +17,4 @@ class WorkerEvent(BaseEvents):
     WORKER_ACTIVE = SocketEvent("worker_active")
     WORKER_JOB = SocketEvent("worker-job")
     WORKER_RESULT = SocketEvent("worker-result")
+    WORKER_DISCONNECTED = SocketEvent("worker-disconnected")

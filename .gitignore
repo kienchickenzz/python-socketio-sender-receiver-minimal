@@ -17,3 +17,7 @@ uv.lock
 
 # AI
 CLAUDE.md
+
+# Log
+**/*.log
+**/logs

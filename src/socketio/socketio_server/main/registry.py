@@ -16,6 +16,8 @@ from src.socketio.socketio_server.main.handler.RequestProcessingHandler import R
 from src.socketio.socketio_server.main.handler.WorkerActiveHandler import WorkerActiveHandler
 from src.socketio.socketio_server.main.handler.WorkerResultHandler import WorkerResultHandler
 from src.socketio.socketio_server.main.handler.SenderDisconnectedHandler import SenderDisconnectedHandler
+from src.socketio.socketio_server.main.handler.WorkerDisconnectedHandler import WorkerDisconnectedHandler
+from src.socketio.socketio_server.main.handler.ReceiverDisconnectedHandler import ReceiverDisconnectedHandler
 from src.socketio.socketio_server.main.manager.ReceiverManager import ReceiverManager
 from src.socketio.socketio_server.main.manager.SenderManager import SenderManager
 from src.socketio.socketio_server.main.manager.PairManager import PairManager
@@ -80,13 +82,14 @@ class MainEventRegistry(BaseEventRegistry):
         """
         return [
             ConnectHandler(),
-            # DisconnectHandler(),
             ReceiverReadyHandler(event_publisher=self._event_publisher),
             SenderDisconnectedHandler(event_publisher=self._event_publisher),
             SenderPairRequestHandler(event_publisher=self._event_publisher),
             RequestProcessingHandler(event_publisher=self._event_publisher),
             WorkerActiveHandler(event_publisher=self._event_publisher),
             WorkerResultHandler(event_publisher=self._event_publisher),
+            WorkerDisconnectedHandler(event_publisher=self._event_publisher),
+            ReceiverDisconnectedHandler(event_publisher=self._event_publisher),
         ]
 
     def _create_wrapper(self, handler: IEventHandler):
